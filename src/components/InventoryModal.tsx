@@ -68,8 +68,21 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
     setEditMode('edit');
   };
 
+  const willAdjustCurrent = editMode === 'edit' && editingItem && formData.totalQuantity < editingItem.currentQuantity;
+  const willAdjustThreshold = formData.threshold > formData.totalQuantity;
+
   const handleSubmit = () => {
     if (!formData.name.trim()) return;
+
+    let confirmed = true;
+    if (willAdjustCurrent && editingItem) {
+      confirmed = window.confirm(
+        `总数量（${formData.totalQuantity}${editingItem.unit}）小于当前库存（${editingItem.currentQuantity}${editingItem.unit}），\n` +
+        `保存后当前库存将自动调整为 ${formData.totalQuantity}${editingItem.unit}。\n\n是否继续保存？`
+      );
+    }
+
+    if (!confirmed) return;
 
     if (editMode === 'add') {
       addInventoryItem({
@@ -280,7 +293,7 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                                 <div
                                   className={`h-full ${getStockBarColor(item)} transition-all duration-300`}
                                   style={{
-                                    width: `${item.totalQuantity > 0 ? (item.currentQuantity / item.totalQuantity) * 100 : 0}%`,
+                                    width: `${Math.min(100, item.totalQuantity > 0 ? (item.currentQuantity / item.totalQuantity) * 100 : 0)}%`,
                                   }}
                                 />
                               </div>
@@ -397,6 +410,37 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                 </div>
               </div>
 
+              {editMode === 'edit' && editingItem && (
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                    <Package className="w-3.5 h-3.5" />
+                    当前库存信息
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">当前余量</span>
+                    <span className={`font-bold ${
+                      editingItem.currentQuantity <= 0 ? 'text-danger-500' :
+                      editingItem.currentQuantity <= editingItem.threshold ? 'text-warning-500' :
+                        'text-success-600'
+                    }`}>
+                      {editingItem.currentQuantity} {editingItem.unit}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        editingItem.currentQuantity <= 0 ? 'bg-danger-400' :
+                          editingItem.currentQuantity <= editingItem.threshold ? 'bg-warning-400' :
+                            'bg-success-400'
+                      }`}
+                      style={{
+                        width: `${Math.min(100, editingItem.totalQuantity > 0 ? (editingItem.currentQuantity / editingItem.totalQuantity) * 100 : 0)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   总数量
@@ -406,8 +450,15 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                     type="number"
                     min="0"
                     value={formData.totalQuantity}
-                    onChange={(e) => setFormData({ ...formData, totalQuantity: Math.max(0, parseInt(e.target.value) || 0) })}
-                    className="flex-1 p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors"
+                    onChange={(e) => {
+                      const newTotal = Math.max(0, parseInt(e.target.value) || 0);
+                      setFormData({ ...formData, totalQuantity: newTotal });
+                    }}
+                    className={`flex-1 p-3 border-2 rounded-xl focus:border-primary-400 outline-none transition-colors ${
+                      editMode === 'edit' && editingItem && formData.totalQuantity < editingItem.currentQuantity
+                        ? 'border-warning-400 bg-warning-50'
+                        : 'border-gray-200'
+                    }`}
                   />
                   <select
                     value={formData.unit}
@@ -419,6 +470,15 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                     ))}
                   </select>
                 </div>
+                {editMode === 'edit' && editingItem && formData.totalQuantity < editingItem.currentQuantity && (
+                  <div className="flex items-start gap-1.5 mt-2 text-warning-600 text-xs bg-warning-50 p-2 rounded-lg">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      总数量小于当前库存 {editingItem.currentQuantity}{editingItem.unit}，
+                      保存后当前库存将自动调整为 {formData.totalQuantity}{editingItem.unit}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -429,9 +489,22 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                   type="number"
                   min="0"
                   value={formData.threshold}
-                  onChange={(e) => setFormData({ ...formData, threshold: Math.max(0, parseInt(e.target.value) || 0) })}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors"
+                  onChange={(e) => {
+                    const newThreshold = Math.max(0, parseInt(e.target.value) || 0);
+                    setFormData({ ...formData, threshold: newThreshold });
+                  }}
+                  className={`w-full p-3 border-2 rounded-xl focus:border-primary-400 outline-none transition-colors ${
+                    formData.threshold > formData.totalQuantity
+                      ? 'border-warning-400 bg-warning-50'
+                      : 'border-gray-200'
+                  }`}
                 />
+                {formData.threshold > formData.totalQuantity && (
+                  <div className="flex items-start gap-1.5 mt-2 text-warning-600 text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>阈值不能超过总数量，保存后将自动调整</span>
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mt-1">
                   当库存低于此数量时会发出补货提醒
                 </p>

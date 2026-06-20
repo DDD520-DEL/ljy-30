@@ -159,10 +159,14 @@ export const useBorrowStore = create<BorrowState>()(
 
       addInventoryItem: (item) => {
         const now = new Date().toISOString();
+        const safeTotalQuantity = Math.max(0, item.totalQuantity);
+        const safeThreshold = Math.max(0, Math.min(item.threshold, safeTotalQuantity));
         const newItem: InventoryItem = {
           ...item,
           id: generateId(),
-          currentQuantity: item.totalQuantity,
+          totalQuantity: safeTotalQuantity,
+          currentQuantity: safeTotalQuantity,
+          threshold: safeThreshold,
           createdAt: now,
           updatedAt: now,
         };
@@ -178,9 +182,23 @@ export const useBorrowStore = create<BorrowState>()(
       updateInventoryItem: (id, updates) => {
         const now = new Date().toISOString();
         set((state) => ({
-          inventory: state.inventory.map((i) =>
-            i.id === id ? { ...i, ...updates, updatedAt: now } : i
-          ),
+          inventory: state.inventory.map((i) => {
+            if (i.id !== id) return i;
+
+            const merged = { ...i, ...updates };
+            const safeTotalQuantity = Math.max(0, merged.totalQuantity);
+            const safeCurrentQuantity = Math.max(0, Math.min(merged.currentQuantity, safeTotalQuantity));
+            const safeThreshold = Math.max(0, Math.min(merged.threshold, safeTotalQuantity));
+
+            return {
+              ...i,
+              ...updates,
+              totalQuantity: safeTotalQuantity,
+              currentQuantity: safeCurrentQuantity,
+              threshold: safeThreshold,
+              updatedAt: now,
+            };
+          }),
         }));
       },
 
@@ -190,10 +208,11 @@ export const useBorrowStore = create<BorrowState>()(
           return false;
         }
         const now = new Date().toISOString();
+        const safeQuantity = Math.max(0, Math.min(quantity, item.currentQuantity));
         set((state) => ({
           inventory: state.inventory.map((i) =>
             i.id === itemId
-              ? { ...i, currentQuantity: i.currentQuantity - quantity, updatedAt: now }
+              ? { ...i, currentQuantity: i.currentQuantity - safeQuantity, updatedAt: now }
               : i
           ),
         }));
@@ -202,12 +221,13 @@ export const useBorrowStore = create<BorrowState>()(
 
       increaseInventory: (itemId, quantity) => {
         const now = new Date().toISOString();
+        const safeQuantity = Math.max(0, quantity);
         set((state) => ({
-          inventory: state.inventory.map((i) =>
-            i.id === itemId
-              ? { ...i, currentQuantity: i.currentQuantity + quantity, updatedAt: now }
-              : i
-          ),
+          inventory: state.inventory.map((i) => {
+            if (i.id !== itemId) return i;
+            const newCurrent = Math.min(i.currentQuantity + safeQuantity, i.totalQuantity);
+            return { ...i, currentQuantity: Math.max(0, newCurrent), updatedAt: now };
+          }),
         }));
       },
 

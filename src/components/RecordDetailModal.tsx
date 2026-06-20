@@ -139,7 +139,7 @@ export function RecordDetailModal({ record, isOpen, onClose, onReturn }: RecordD
                       isLowStock ? 'bg-warning-400' : 'bg-success-400'
                     }`}
                     style={{
-                      width: `${inventoryItem.totalQuantity > 0 ? (inventoryItem.currentQuantity / inventoryItem.totalQuantity) * 100 : 0}%`,
+                      width: `${Math.min(100, inventoryItem.totalQuantity > 0 ? (inventoryItem.currentQuantity / inventoryItem.totalQuantity) * 100 : 0)}%`,
                     }}
                   />
                 </div>
