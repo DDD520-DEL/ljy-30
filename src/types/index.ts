@@ -91,3 +91,14 @@ export interface InventoryItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Comment {
+  id: string;
+  houseId: string;
+  recordId: string;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  content: string;
+  createdAt: string;
+}

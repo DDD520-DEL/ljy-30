@@ -3,6 +3,7 @@ import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { formatDateShort, getDueLabel } from '@/utils/date';
 import { X, Check, Trash2, ArrowUpRight, ArrowDownLeft, Package, AlertTriangle, AlertCircle, DollarSign } from 'lucide-react';
+import { CommentSection } from './CommentSection';
 
 interface RecordDetailModalProps {
   record: BorrowRecord | null;
@@ -280,6 +281,8 @@ export function RecordDetailModal({ record, isOpen, onClose, onReturn, onOpenCom
               <p className="text-gray-700 text-sm">{record.note}</p>
             </div>
           )}
+
+          <CommentSection recordId={record.id} />
         </div>
 
         <div className="flex gap-3 mt-6">

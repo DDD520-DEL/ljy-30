@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
@@ -10,6 +10,7 @@ interface BorrowState {
 
   records: BorrowRecord[];
   compensationRecords: CompensationRecord[];
+  comments: Comment[];
   roommates: Roommate[];
   inventory: InventoryItem[];
   filter: FilterType;
@@ -40,6 +41,11 @@ interface BorrowState {
   getCompensationByRecordId: (borrowRecordId: string) => CompensationRecord | undefined;
   getCompensations: () => CompensationRecord[];
   getPendingCompensations: () => CompensationRecord[];
+
+  addComment: (record: Omit<Comment, 'id' | 'houseId' | 'createdAt'>) => void;
+  deleteComment: (id: string) => void;
+  getCommentsByRecordId: (recordId: string) => Comment[];
+  getCommentCountByRecordId: (recordId: string) => number;
 
   addRoommate: (roommate: Omit<Roommate, 'id' | 'houseId' | 'createdAt'>) => void;
   deleteRoommate: (id: string) => void;
@@ -99,6 +105,7 @@ export const useBorrowStore = create<BorrowState>()(
 
       records: MOCK_RECORDS,
       compensationRecords: [],
+      comments: [],
       roommates: MOCK_ROOMMATES,
       inventory: MOCK_INVENTORY,
       filter: 'all',
@@ -162,6 +169,7 @@ export const useBorrowStore = create<BorrowState>()(
           currentHouseId: newCurrentId,
           records: state.records.filter((r) => r.houseId !== houseId),
           compensationRecords: state.compensationRecords.filter((r) => r.houseId !== houseId),
+          comments: state.comments.filter((c) => c.houseId !== houseId),
           roommates: state.roommates.filter((r) => r.houseId !== houseId),
           inventory: state.inventory.filter((i) => i.houseId !== houseId),
         }));
@@ -241,6 +249,7 @@ export const useBorrowStore = create<BorrowState>()(
 
         set((state) => ({
           records: state.records.filter((r) => r.id !== id),
+          comments: state.comments.filter((c) => c.recordId !== id),
         }));
       },
 
@@ -300,6 +309,35 @@ export const useBorrowStore = create<BorrowState>()(
       getPendingCompensations: () => {
         const houseId = get().currentHouseId;
         return get().compensationRecords.filter((r) => r.houseId === houseId && r.status === 'pending');
+      },
+
+      addComment: (comment) => {
+        const now = new Date().toISOString();
+        const newComment: Comment = {
+          ...comment,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          createdAt: now,
+        };
+        set((state) => ({ comments: [newComment, ...state.comments] }));
+      },
+
+      deleteComment: (id) => {
+        set((state) => ({
+          comments: state.comments.filter((c) => c.id !== id),
+        }));
+      },
+
+      getCommentsByRecordId: (recordId) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .comments.filter((c) => c.houseId === houseId && c.recordId === recordId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getCommentCountByRecordId: (recordId) => {
+        const houseId = get().currentHouseId;
+        return get().comments.filter((c) => c.houseId === houseId && c.recordId === recordId).length;
       },
 
       addRoommate: (roommate) => {
