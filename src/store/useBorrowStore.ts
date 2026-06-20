@@ -55,6 +55,8 @@ interface BorrowState {
   getSearchFilteredHistoryRecords: () => BorrowRecord[];
   getStats: () => { lend: number; borrow: number; overdue: number; todayDue: number };
   getDueReminders: () => BorrowRecord[];
+
+  importRecords: (records: BorrowRecord[]) => { added: number; duplicates: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -413,6 +415,45 @@ export const useBorrowStore = create<BorrowState>()(
         });
 
         return sorted;
+      },
+
+      importRecords: (importedRecords) => {
+        const existingRecords = get().records;
+
+        const makeKey = (r: BorrowRecord) =>
+          `${r.itemName}|${r.roommateId}|${r.borrowDate}|${r.expectedReturnDate}|${r.actualReturnDate || ''}`;
+
+        const existingKeys = new Set(existingRecords.map(makeKey));
+
+        let added = 0;
+        let duplicates = 0;
+        const newRecords: BorrowRecord[] = [];
+
+        importedRecords.forEach((record) => {
+          const key = makeKey(record);
+          if (existingKeys.has(key)) {
+            duplicates++;
+          } else {
+            const now = new Date().toISOString();
+            const newRecord: BorrowRecord = {
+              ...record,
+              id: generateId(),
+              createdAt: record.createdAt || now,
+              updatedAt: now,
+            };
+            newRecords.push(newRecord);
+            existingKeys.add(key);
+            added++;
+          }
+        });
+
+        if (newRecords.length > 0) {
+          set((state) => ({
+            records: [...newRecords, ...state.records],
+          }));
+        }
+
+        return { added, duplicates };
       },
     }),
     {

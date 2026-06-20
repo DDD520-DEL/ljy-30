@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { Header } from '@/components/Header';
@@ -13,7 +13,8 @@ import { Celebration } from '@/components/Celebration';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
 import { useNotification } from '@/hooks/useNotification';
-import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Package, Download, Upload } from 'lucide-react';
+import { recordsToCSV, csvToRecords, downloadCSV, formatDateForFilename } from '@/utils/csv';
 
 export default function Home() {
   const {
@@ -30,12 +31,14 @@ export default function Home() {
     searchQuery,
     selectedRoommateId,
     getInventoryStats,
+    importRecords,
   } = useBorrowStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<BorrowRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const inventoryStats = getInventoryStats();
 
@@ -73,6 +76,51 @@ export default function Home() {
   const handleCardClick = (record: BorrowRecord) => {
     setSelectedRecord(record);
     setShowDetailModal(true);
+  };
+
+  const handleExport = () => {
+    const recordsToExport = showHistory ? historyRecords : activeRecords;
+    if (recordsToExport.length === 0) {
+      alert('当前视图下没有可导出的记录');
+      return;
+    }
+    const csvContent = recordsToCSV(recordsToExport);
+    const filename = `借用记录_${formatDateForFilename(new Date())}.csv`;
+    downloadCSV(csvContent, filename);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const records = csvToRecords(text);
+
+      if (records.length === 0) {
+        alert('CSV 文件中没有有效的记录');
+        return;
+      }
+
+      const confirmMsg = `即将导入 ${records.length} 条记录，是否继续？\n（重复记录将自动跳过）`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+
+      const result = importRecords(records);
+      alert(
+        `导入完成！\n\n成功导入: ${result.added} 条\n重复跳过: ${result.duplicates} 条`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '导入失败，请检查文件格式';
+      alert(`导入失败：${message}`);
+    } finally {
+      e.target.value = '';
+    }
   };
 
   return (
@@ -120,19 +168,48 @@ export default function Home() {
         </div>
 
         <div className="px-5 pb-4">
-          <button
-            onClick={toggleHistory}
-            className="w-full flex items-center justify-center gap-2 py-3 text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <span className="text-sm font-medium">
-              📜 历史记录 ({historyRecords.length})
-            </span>
-            {showHistory ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={toggleHistory}
+              className="flex items-center gap-2 py-3 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <span className="text-sm font-medium">
+                📜 历史记录 ({historyRecords.length})
+              </span>
+              {showHistory ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleImportClick}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-xl shadow-sm hover:shadow-md transition-all text-xs font-medium text-gray-600 hover:text-gray-800"
+                title="从 CSV 文件导入记录"
+              >
+                <Upload className="w-3.5 h-3.5 text-primary-500" />
+                <span>导入</span>
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-xl shadow-sm hover:shadow-md transition-all text-xs font-medium text-gray-600 hover:text-gray-800"
+                title="导出当前视图下的记录为 CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-success-500" />
+                <span>导出</span>
+              </button>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+          </div>
 
           {showHistory && (
             <div className="space-y-2 mt-2 animate-fade-in">
