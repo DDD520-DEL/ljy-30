@@ -4,6 +4,10 @@ export type BorrowStatus = 'active' | 'returned' | 'overdue';
 
 export type FilterType = 'all' | 'lend' | 'borrow' | 'overdue';
 
+export type SortType = 'returnDate' | 'createdAt';
+
+export type SortOrder = 'asc' | 'desc';
+
 export interface Roommate {
   id: string;
   name: string;

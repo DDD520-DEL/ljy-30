@@ -35,6 +35,11 @@ export const EMPTY_MESSAGES = {
     { emoji: '✅', text: '太棒了！没有逾期记录' },
     { emoji: '🌟', text: '大家都是按时归还的好宝宝' },
   ],
+  search: [
+    { emoji: '🔍', text: '没有找到匹配的记录，换个关键词试试？' },
+    { emoji: '🤔', text: '咦，好像没有这个物品的记录' },
+    { emoji: '💨', text: '搜不到，可能这个物品不存在哦' },
+  ],
 };
 
 export const ROOMMATE_COLORS = [

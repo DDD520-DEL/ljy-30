@@ -13,8 +13,8 @@ import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function Home() {
   const {
-    getFilteredRecords,
-    getHistoryRecords,
+    getSearchFilteredRecords,
+    getSearchFilteredHistoryRecords,
     showHistory,
     toggleHistory,
     showRoommateModal,
@@ -22,6 +22,8 @@ export default function Home() {
     returnRecord,
     checkOverdue,
     filter,
+    searchQuery,
+    selectedRoommateId,
   } = useBorrowStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -29,8 +31,10 @@ export default function Home() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
 
-  const activeRecords = getFilteredRecords();
-  const historyRecords = getHistoryRecords();
+  const activeRecords = getSearchFilteredRecords();
+  const historyRecords = getSearchFilteredHistoryRecords();
+
+  const hasActiveFilters = searchQuery.trim() !== '' || selectedRoommateId !== null;
 
   useEffect(() => {
     checkOverdue();
@@ -62,7 +66,7 @@ export default function Home() {
         <div className="px-5 pb-4">
           <div className="space-y-3">
             {activeRecords.length === 0 ? (
-              <EmptyState type={filter === 'overdue' ? 'overdue' : 'active'} />
+              <EmptyState type={hasActiveFilters ? 'search' : filter === 'overdue' ? 'overdue' : 'active'} />
             ) : (
               activeRecords.map((record, index) => (
                 <div key={record.id} style={{ animationDelay: `${index * 0.05}s` }}>
@@ -95,7 +99,7 @@ export default function Home() {
           {showHistory && (
             <div className="space-y-2 mt-2 animate-fade-in">
               {historyRecords.length === 0 ? (
-                <EmptyState type="history" />
+                <EmptyState type={hasActiveFilters ? 'search' : 'history'} />
               ) : (
                 historyRecords.map((record) => (
                   <BorrowCard

@@ -2,7 +2,7 @@ import { EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue';
+  type?: 'active' | 'history' | 'overdue' | 'search';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
