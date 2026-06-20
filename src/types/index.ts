@@ -121,3 +121,53 @@ export interface BorrowTemplate {
   createdAt: string;
   updatedAt: string;
 }
+
+export type BillCategory = 'electricity' | 'water' | 'gas' | 'internet' | 'property' | 'other';
+
+export type SplitMode = 'equal' | 'custom';
+
+export type BillStatus = 'pending' | 'settled';
+
+export interface BillParticipant {
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  amount: number;
+  paid: boolean;
+  paidAt?: string;
+}
+
+export interface Bill {
+  id: string;
+  houseId: string;
+  category: BillCategory;
+  title: string;
+  emoji: string;
+  totalAmount: number;
+  payerId: string;
+  payerName: string;
+  payerAvatar: string;
+  splitMode: SplitMode;
+  participants: BillParticipant[];
+  billDate: string;
+  note?: string;
+  status: BillStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Settlement {
+  fromRoommateId: string;
+  fromRoommateName: string;
+  fromRoommateAvatar: string;
+  toRoommateId: string;
+  toRoommateName: string;
+  toRoommateAvatar: string;
+  amount: number;
+}
+
+export interface BillCategoryOption {
+  key: BillCategory;
+  name: string;
+  emoji: string;
+}

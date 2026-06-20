@@ -20,7 +20,6 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
     addTemplate,
     updateTemplate,
     deleteTemplate,
-    getTemplates,
   } = useBorrowStore();
 
   const currentRoommates = useMemo(

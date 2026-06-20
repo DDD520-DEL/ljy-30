@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
@@ -88,6 +88,20 @@ interface BorrowState {
   updateTemplate: (id: string, updates: Partial<Omit<BorrowTemplate, 'id' | 'houseId' | 'createdAt'>>) => void;
   deleteTemplate: (id: string) => void;
   getTemplates: () => BorrowTemplate[];
+
+  bills: Bill[];
+  billFilter: BillStatus | 'all';
+  setBillFilter: (filter: BillStatus | 'all') => void;
+  addBill: (bill: Omit<Bill, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+  deleteBill: (id: string) => void;
+  updateBill: (id: string, updates: Partial<Bill>) => void;
+  markBillParticipantPaid: (billId: string, roommateId: string) => void;
+  getBills: () => Bill[];
+  getFilteredBills: () => Bill[];
+  getPendingBills: () => Bill[];
+  getSettledBills: () => Bill[];
+  getBillStats: () => { total: number; pending: number; settled: number; totalAmount: number; pendingAmount: number };
+  calculateSettlements: () => Settlement[];
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -115,6 +129,8 @@ export const useBorrowStore = create<BorrowState>()(
       roommates: MOCK_ROOMMATES,
       inventory: MOCK_INVENTORY,
       templates: [],
+      bills: [],
+      billFilter: 'all',
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -180,6 +196,7 @@ export const useBorrowStore = create<BorrowState>()(
           roommates: state.roommates.filter((r) => r.houseId !== houseId),
           inventory: state.inventory.filter((i) => i.houseId !== houseId),
           templates: state.templates.filter((t) => t.houseId !== houseId),
+          bills: state.bills.filter((b) => b.houseId !== houseId),
         }));
       },
 
@@ -715,6 +732,175 @@ export const useBorrowStore = create<BorrowState>()(
       getTemplates: () => {
         const houseId = get().currentHouseId;
         return get().templates.filter((t) => t.houseId === houseId);
+      },
+
+      setBillFilter: (filter) => set({ billFilter: filter }),
+
+      addBill: (bill) => {
+        const now = new Date().toISOString();
+        const allPaid = bill.participants.every((p) => p.paid);
+        const newBill: Bill = {
+          ...bill,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: allPaid ? 'settled' : 'pending',
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ bills: [newBill, ...state.bills] }));
+      },
+
+      deleteBill: (id) => {
+        set((state) => ({
+          bills: state.bills.filter((b) => b.id !== id),
+        }));
+      },
+
+      updateBill: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          bills: state.bills.map((b) => {
+            if (b.id !== id) return b;
+            const merged = { ...b, ...updates, updatedAt: now };
+            if (merged.participants) {
+              const allPaid = merged.participants.every((p) => p.paid);
+              merged.status = allPaid ? 'settled' : 'pending';
+            }
+            return merged;
+          }),
+        }));
+      },
+
+      markBillParticipantPaid: (billId, roommateId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          bills: state.bills.map((b) => {
+            if (b.id !== billId) return b;
+            const updatedParticipants = b.participants.map((p) =>
+              p.roommateId === roommateId ? { ...p, paid: true, paidAt: now } : p
+            );
+            const allPaid = updatedParticipants.every((p) => p.paid);
+            return {
+              ...b,
+              participants: updatedParticipants,
+              status: allPaid ? 'settled' : 'pending',
+              updatedAt: now,
+            };
+          }),
+        }));
+      },
+
+      getBills: () => {
+        const houseId = get().currentHouseId;
+        return get().bills.filter((b) => b.houseId === houseId);
+      },
+
+      getFilteredBills: () => {
+        const { bills, billFilter } = get();
+        const houseId = get().currentHouseId;
+        const houseBills = bills.filter((b) => b.houseId === houseId);
+        switch (billFilter) {
+          case 'pending':
+            return houseBills.filter((b) => b.status === 'pending');
+          case 'settled':
+            return houseBills.filter((b) => b.status === 'settled');
+          default:
+            return houseBills;
+        }
+      },
+
+      getPendingBills: () => {
+        const houseId = get().currentHouseId;
+        return get().bills.filter((b) => b.houseId === houseId && b.status === 'pending');
+      },
+
+      getSettledBills: () => {
+        const houseId = get().currentHouseId;
+        return get().bills.filter((b) => b.houseId === houseId && b.status === 'settled');
+      },
+
+      getBillStats: () => {
+        const houseId = get().currentHouseId;
+        const houseBills = get().bills.filter((b) => b.houseId === houseId);
+        const pending = houseBills.filter((b) => b.status === 'pending');
+        const settled = houseBills.filter((b) => b.status === 'settled');
+        const totalAmount = houseBills.reduce((sum, b) => sum + b.totalAmount, 0);
+        const pendingAmount = pending.reduce((sum, b) => {
+          const unpaid = b.participants.filter((p) => !p.paid);
+          return sum + unpaid.reduce((s, p) => s + p.amount, 0);
+        }, 0);
+        return {
+          total: houseBills.length,
+          pending: pending.length,
+          settled: settled.length,
+          totalAmount,
+          pendingAmount,
+        };
+      },
+
+      calculateSettlements: () => {
+        const houseId = get().currentHouseId;
+        const { roommates, bills } = get();
+        const houseRoommates = roommates.filter((r) => r.houseId === houseId);
+        const houseBills = bills.filter((b) => b.houseId === houseId && b.status === 'pending');
+
+        const balances: Record<string, number> = {};
+        houseRoommates.forEach((r) => (balances[r.id] = 0));
+
+        houseBills.forEach((bill) => {
+          balances[bill.payerId] = (balances[bill.payerId] || 0) + bill.totalAmount;
+          bill.participants.forEach((p) => {
+            if (!p.paid) {
+              balances[p.roommateId] = (balances[p.roommateId] || 0) - p.amount;
+            }
+          });
+        });
+
+        const debtors: { id: string; name: string; avatar: string; amount: number }[] = [];
+        const creditors: { id: string; name: string; avatar: string; amount: number }[] = [];
+
+        Object.entries(balances).forEach(([id, amount]) => {
+          const roommate = houseRoommates.find((r) => r.id === id);
+          if (!roommate) return;
+          if (amount < -0.01) {
+            debtors.push({ id, name: roommate.name, avatar: roommate.avatar, amount: -amount });
+          } else if (amount > 0.01) {
+            creditors.push({ id, name: roommate.name, avatar: roommate.avatar, amount });
+          }
+        });
+
+        debtors.sort((a, b) => b.amount - a.amount);
+        creditors.sort((a, b) => b.amount - a.amount);
+
+        const settlements: Settlement[] = [];
+        let i = 0;
+        let j = 0;
+
+        while (i < debtors.length && j < creditors.length) {
+          const debtor = debtors[i];
+          const creditor = creditors[j];
+          const amount = Math.min(debtor.amount, creditor.amount);
+
+          if (amount > 0.01) {
+            settlements.push({
+              fromRoommateId: debtor.id,
+              fromRoommateName: debtor.name,
+              fromRoommateAvatar: debtor.avatar,
+              toRoommateId: creditor.id,
+              toRoommateName: creditor.name,
+              toRoommateAvatar: creditor.avatar,
+              amount: Math.round(amount * 100) / 100,
+            });
+          }
+
+          debtor.amount -= amount;
+          creditor.amount -= amount;
+
+          if (debtor.amount < 0.01) i++;
+          if (creditor.amount < 0.01) j++;
+        }
+
+        return settlements;
       },
     }),
     {

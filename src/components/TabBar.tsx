@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3 } from 'lucide-react';
+import { Home, BarChart3, Wallet } from 'lucide-react';
 
 export function TabBar() {
   return (
@@ -9,7 +9,7 @@ export function TabBar() {
           to="/"
           end
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-6 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all ${
               isActive
                 ? 'text-primary-500 bg-primary-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -21,9 +21,23 @@ export function TabBar() {
         </NavLink>
 
         <NavLink
+          to="/bills"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all ${
+              isActive
+                ? 'text-warning-500 bg-warning-50'
+                : 'text-gray-400 hover:text-gray-600'
+            }`
+          }
+        >
+          <Wallet className="w-6 h-6 mb-1" />
+          <span className="text-xs font-medium">账单</span>
+        </NavLink>
+
+        <NavLink
           to="/statistics"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-6 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all ${
               isActive
                 ? 'text-primary-500 bg-primary-50'
                 : 'text-gray-400 hover:text-gray-600'

@@ -1,4 +1,4 @@
-import type { ItemOption } from '@/types';
+import type { ItemOption, BillCategoryOption } from '@/types';
 
 export const COMMON_ITEMS: ItemOption[] = [
   { name: '洗衣液', emoji: '🧴' },
@@ -66,3 +66,27 @@ export const RETURN_TIME_OPTIONS = [
   { label: '2周后', days: 14 },
   { label: '1个月后', days: 30 },
 ];
+
+export const BILL_CATEGORIES: BillCategoryOption[] = [
+  { key: 'electricity', name: '电费', emoji: '⚡' },
+  { key: 'water', name: '水费', emoji: '💧' },
+  { key: 'gas', name: '燃气费', emoji: '🔥' },
+  { key: 'internet', name: '网费', emoji: '📶' },
+  { key: 'property', name: '物业费', emoji: '🏢' },
+  { key: 'other', name: '其他', emoji: '💰' },
+];
+
+export const BILL_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '📭', text: '还没有账单记录哦~' },
+    { emoji: '🏠', text: '大家还没产生公共费用' },
+  ],
+  pending: [
+    { emoji: '✅', text: '太棒了！没有待结算的账单' },
+    { emoji: '💰', text: '所有账单都已结清啦' },
+  ],
+  settled: [
+    { emoji: '📜', text: '还没有已结算的账单' },
+    { emoji: '🪶', text: '历史账单空空如也' },
+  ],
+};
