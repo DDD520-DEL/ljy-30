@@ -1,5 +1,5 @@
 import type { BorrowRecord } from '@/types';
-import { getDueLabel } from '@/utils/date';
+import { getDueLabel, isOverdue } from '@/utils/date';
 import { Check, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 interface BorrowCardProps {
@@ -12,17 +12,18 @@ interface BorrowCardProps {
 export function BorrowCard({ record, onClick, onReturn, isReturned = false }: BorrowCardProps) {
   const dueInfo = getDueLabel(record.expectedReturnDate);
   const isLend = record.type === 'lend';
+  const isRecordOverdue = !isReturned && isOverdue(record.expectedReturnDate);
 
   const getBorderColor = () => {
     if (isReturned) return 'border-gray-200';
-    if (record.status === 'overdue') return 'border-danger-400';
+    if (isRecordOverdue) return 'border-danger-400';
     if (isLend) return 'border-primary-300';
     return 'border-purple-300';
   };
 
   const getLeftBarColor = () => {
     if (isReturned) return 'bg-gray-300';
-    if (record.status === 'overdue') return 'bg-danger-500';
+    if (isRecordOverdue) return 'bg-danger-500';
     if (isLend) return 'bg-primary-400';
     return 'bg-purple-400';
   };
@@ -46,7 +47,7 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
       className={`relative bg-white rounded-2xl p-4 shadow-sm border-l-4 ${getBorderColor()} ${getLeftBarColor()} 
         hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden
         ${isReturned ? 'opacity-60' : ''}
-        ${record.status === 'overdue' && !isReturned ? 'animate-pulse-soft' : ''}
+        ${isRecordOverdue ? 'animate-pulse-soft' : ''}
         animate-slide-up`}
     >
       <div className="flex items-start gap-3">

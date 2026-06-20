@@ -164,7 +164,7 @@ export const useBorrowStore = create<BorrowState>()(
           case 'borrow':
             return active.filter((r) => r.type === 'borrow');
           case 'overdue':
-            return active.filter((r) => r.status === 'overdue');
+            return active.filter((r) => isOverdue(r.expectedReturnDate));
           default:
             return active;
         }
@@ -207,7 +207,7 @@ export const useBorrowStore = create<BorrowState>()(
             active = active.filter((r) => r.type === 'borrow');
             break;
           case 'overdue':
-            active = active.filter((r) => r.status === 'overdue');
+            active = active.filter((r) => isOverdue(r.expectedReturnDate));
             break;
           default:
             break;
