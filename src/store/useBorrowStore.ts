@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BorrowRecord, Roommate, BorrowType, FilterType, BorrowStatus, SortType, SortOrder } from '@/types';
 import { MOCK_RECORDS, MOCK_ROOMMATES } from '@/data/mockData';
-import { isOverdue } from '@/utils/date';
+import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
   records: BorrowRecord[];
@@ -40,6 +40,7 @@ interface BorrowState {
   getSearchFilteredRecords: () => BorrowRecord[];
   getSearchFilteredHistoryRecords: () => BorrowRecord[];
   getStats: () => { lend: number; borrow: number; overdue: number; todayDue: number };
+  getDueReminders: () => BorrowRecord[];
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -185,6 +186,21 @@ export const useBorrowStore = create<BorrowState>()(
           );
         }).length;
         return { lend, borrow, overdue, todayDue };
+      },
+
+      getDueReminders: () => {
+        const records = get().records;
+        const active = records.filter((r) => r.status !== 'returned');
+        const reminders = active.filter((r) => {
+          return isToday(r.expectedReturnDate) || isOverdue(r.expectedReturnDate);
+        });
+        return reminders.sort((a, b) => {
+          const aOverdue = isOverdue(a.expectedReturnDate);
+          const bOverdue = isOverdue(b.expectedReturnDate);
+          if (aOverdue && !bOverdue) return -1;
+          if (!aOverdue && bOverdue) return 1;
+          return new Date(a.expectedReturnDate).getTime() - new Date(b.expectedReturnDate).getTime();
+        });
       },
 
       getSearchFilteredRecords: () => {

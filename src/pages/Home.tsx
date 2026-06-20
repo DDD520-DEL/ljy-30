@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { Header } from '@/components/Header';
@@ -9,6 +9,8 @@ import { AddRecordModal } from '@/components/AddRecordModal';
 import { RecordDetailModal } from '@/components/RecordDetailModal';
 import { RoommateModal } from '@/components/RoommateModal';
 import { Celebration } from '@/components/Celebration';
+import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
+import { useNotification } from '@/hooks/useNotification';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function Home() {
@@ -30,6 +32,25 @@ export default function Home() {
   const [selectedRecord, setSelectedRecord] = useState<BorrowRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+
+  const openRecordDetail = useCallback((recordOrId: BorrowRecord | string) => {
+    if (typeof recordOrId === 'string') {
+      const found = useBorrowStore.getState().records.find((r) => r.id === recordOrId);
+      if (found) {
+        setSelectedRecord(found);
+        setShowDetailModal(true);
+      }
+    } else {
+      setSelectedRecord(recordOrId);
+      setShowDetailModal(true);
+    }
+  }, []);
+
+  useNotification({
+    onNotificationClick: (recordId) => {
+      openRecordDetail(recordId);
+    },
+  });
 
   const activeRecords = getSearchFilteredRecords();
   const historyRecords = getSearchFilteredHistoryRecords();
@@ -57,6 +78,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-cream">
       <div className="max-w-md mx-auto bg-cream min-h-screen relative pb-24">
+        <ReturnReminderBanner onItemClick={(record) => openRecordDetail(record)} />
         <Header />
 
         <div className="px-5 py-4">
