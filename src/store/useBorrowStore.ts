@@ -175,16 +175,8 @@ export const useBorrowStore = create<BorrowState>()(
         const active = records.filter((r) => r.status !== 'returned');
         const lend = active.filter((r) => r.type === 'lend').length;
         const borrow = active.filter((r) => r.type === 'borrow').length;
-        const overdue = active.filter((r) => r.status === 'overdue').length;
-        const todayDue = active.filter((r) => {
-          const due = new Date(r.expectedReturnDate);
-          const today = new Date();
-          return (
-            due.getFullYear() === today.getFullYear() &&
-            due.getMonth() === today.getMonth() &&
-            due.getDate() === today.getDate()
-          );
-        }).length;
+        const overdue = active.filter((r) => isOverdue(r.expectedReturnDate)).length;
+        const todayDue = active.filter((r) => isToday(r.expectedReturnDate)).length;
         return { lend, borrow, overdue, todayDue };
       },
 

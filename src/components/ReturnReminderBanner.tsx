@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
-import { getDueLabel } from '@/utils/date';
+import { getDueLabel, isOverdue, isToday } from '@/utils/date';
 import { ChevronDown, ChevronUp, Bell, X } from 'lucide-react';
 import type { BorrowRecord } from '@/types';
 
@@ -16,8 +16,8 @@ export function ReturnReminderBanner({ onItemClick }: ReturnReminderBannerProps)
 
   if (reminders.length === 0 || dismissed) return null;
 
-  const overdueCount = reminders.filter((r) => r.status === 'overdue').length;
-  const todayDueCount = reminders.length - overdueCount;
+  const overdueCount = reminders.filter((r) => isOverdue(r.expectedReturnDate)).length;
+  const todayDueCount = reminders.filter((r) => isToday(r.expectedReturnDate)).length;
 
   const summaryText = [
     overdueCount > 0 ? `${overdueCount}个已逾期` : '',

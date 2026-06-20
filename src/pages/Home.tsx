@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { Header } from '@/components/Header';
@@ -22,7 +22,6 @@ export default function Home() {
     showRoommateModal,
     setShowRoommateModal,
     returnRecord,
-    checkOverdue,
     filter,
     searchQuery,
     selectedRoommateId,
@@ -56,12 +55,6 @@ export default function Home() {
   const historyRecords = getSearchFilteredHistoryRecords();
 
   const hasActiveFilters = searchQuery.trim() !== '' || selectedRoommateId !== null;
-
-  useEffect(() => {
-    checkOverdue();
-    const interval = setInterval(checkOverdue, 60000);
-    return () => clearInterval(interval);
-  }, [checkOverdue]);
 
   const handleReturn = (record: BorrowRecord) => {
     returnRecord(record.id);
