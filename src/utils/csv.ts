@@ -98,6 +98,7 @@ export function csvToRecords(csv: string): BorrowRecord[] {
 
     const record: BorrowRecord = {
       id: getField(row, 'id') || '',
+      houseId: getField(row, 'houseId') || '',
       type,
       itemName: getField(row, 'itemName'),
       itemEmoji: getField(row, 'itemEmoji'),

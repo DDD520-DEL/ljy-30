@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
+import { HouseSwitcher } from '@/components/HouseSwitcher';
 import {
   Users,
   ArrowUpRight,
@@ -11,15 +12,17 @@ import {
   X,
   ChevronDown,
   ArrowUpDown,
-  ArrowDownAZ,
   ArrowUpAZ,
+  ArrowDownAZ,
 } from 'lucide-react';
 
 export function Header() {
   const {
     getStats,
     setShowRoommateModal,
+    setShowHouseModal,
     roommates,
+    currentHouseId,
     searchQuery,
     setSearchQuery,
     selectedRoommateId,
@@ -29,22 +32,22 @@ export function Header() {
     sortOrder,
     setSortOrder,
   } = useBorrowStore();
+
+  const currentRoommates = useMemo(
+    () => roommates.filter((r) => r.houseId === currentHouseId),
+    [roommates, currentHouseId]
+  );
   const stats = getStats();
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   return (
     <div className="bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 text-white rounded-b-3xl px-5 py-6 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <span className="text-3xl">🏠</span>
-            室友借还板
-          </h1>
-          <p className="text-white/80 text-sm mt-1">记录生活中的点点滴滴~</p>
-        </div>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <HouseSwitcher onManageClick={() => setShowHouseModal(true)} />
         <button
           onClick={() => setShowRoommateModal(true)}
           className="p-3 bg-white/20 hover:bg-white/30 rounded-full transition-all active:scale-95"
+          title="室友管理"
         >
           <Users className="w-5 h-5" />
         </button>
@@ -87,8 +90,8 @@ export function Header() {
 
         {selectedRoommateId && (
           <div className="flex items-center gap-1 px-3 py-2 bg-white/20 backdrop-blur rounded-xl text-sm">
-            <span>{roommates.find((r) => r.id === selectedRoommateId)?.avatar}</span>
-            <span>{roommates.find((r) => r.id === selectedRoommateId)?.name}</span>
+            <span>{currentRoommates.find((r) => r.id === selectedRoommateId)?.avatar}</span>
+            <span>{currentRoommates.find((r) => r.id === selectedRoommateId)?.name}</span>
             <button
               onClick={() => setSelectedRoommateId(null)}
               className="ml-1 p-0.5 hover:bg-white/20 rounded-full transition-all"
@@ -117,7 +120,7 @@ export function Header() {
               >
                 全部
               </button>
-              {roommates.map((roommate) => (
+              {currentRoommates.map((roommate) => (
                 <button
                   key={roommate.id}
                   onClick={() => setSelectedRoommateId(roommate.id)}

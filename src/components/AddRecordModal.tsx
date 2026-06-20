@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { COMMON_ITEMS, RETURN_TIME_OPTIONS } from '@/data/constants';
 import type { BorrowType, ItemOption, InventoryItem } from '@/types';
 import { X, Plus, ChevronDown, Package, AlertTriangle } from 'lucide-react';
-import { addDays, formatDate } from '@/utils/date';
+import { addDays } from '@/utils/date';
 
 interface AddRecordModalProps {
   isOpen: boolean;
@@ -11,7 +11,16 @@ interface AddRecordModalProps {
 }
 
 export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
-  const { addRecord, roommates, inventory, getInventoryItemByName } = useBorrowStore();
+  const { addRecord, roommates, inventory, currentHouseId } = useBorrowStore();
+
+  const currentRoommates = useMemo(
+    () => roommates.filter((r) => r.houseId === currentHouseId),
+    [roommates, currentHouseId]
+  );
+  const currentInventory = useMemo(
+    () => inventory.filter((i) => i.houseId === currentHouseId),
+    [inventory, currentHouseId]
+  );
   const [type, setType] = useState<BorrowType>('lend');
   const [itemName, setItemName] = useState('');
   const [itemEmoji, setItemEmoji] = useState('📦');
@@ -33,7 +42,7 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
       setItemEmoji('📦');
       setItemId(undefined);
       setQuantity(1);
-      setRoommateId(roommates[0]?.id || '');
+      setRoommateId(currentRoommates[0]?.id || '');
       setReturnDays(3);
       setCustomDate('');
       setUseCustomDate(false);
@@ -42,7 +51,7 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
       setShowRoommates(false);
       setUseInventoryItem(false);
     }
-  }, [isOpen, roommates]);
+  }, [isOpen, currentRoommates]);
 
   const handleSelectItem = (item: ItemOption) => {
     setItemName(item.name);
@@ -61,14 +70,14 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
     setShowItems(false);
   };
 
-  const selectedInventoryItem = itemId ? inventory.find((i) => i.id === itemId) : undefined;
+  const selectedInventoryItem = itemId ? currentInventory.find((i) => i.id === itemId) : undefined;
   const canBorrow = selectedInventoryItem ? selectedInventoryItem.currentQuantity >= quantity : true;
 
   const handleSubmit = () => {
     if (!itemName.trim() || !roommateId) return;
     if (type === 'lend' && selectedInventoryItem && !canBorrow) return;
 
-    const roommate = roommates.find((r) => r.id === roommateId);
+    const roommate = currentRoommates.find((r) => r.id === roommateId);
     if (!roommate) return;
 
     const expectedReturnDate = useCustomDate
@@ -92,11 +101,9 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
     onClose();
   };
 
-  const selectedRoommate = roommates.find((r) => r.id === roommateId);
+  const selectedRoommate = currentRoommates.find((r) => r.id === roommateId);
 
   if (!isOpen) return null;
-
-  const lowStockItems = inventory.filter((i) => i.currentQuantity <= i.threshold);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -192,11 +199,11 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
 
               {showItems && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-64 overflow-y-auto">
-                  {useInventoryItem && inventory.length > 0 && (
+                  {useInventoryItem && currentInventory.length > 0 && (
                     <div className="p-2 border-b border-gray-100">
                       <p className="text-xs text-gray-500 mb-2 px-2">库存物品</p>
                       <div className="space-y-1">
-                        {inventory.map((item) => {
+                        {currentInventory.map((item) => {
                           const isLow = item.currentQuantity <= item.threshold;
                           return (
                             <button
@@ -317,7 +324,7 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
 
               {showRoommates && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
-                  {roommates.map((roommate) => (
+                  {currentRoommates.map((roommate) => (
                     <button
                       key={roommate.id}
                       onClick={() => {

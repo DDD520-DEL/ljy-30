@@ -9,6 +9,7 @@ import { AddRecordModal } from '@/components/AddRecordModal';
 import { RecordDetailModal } from '@/components/RecordDetailModal';
 import { RoommateModal } from '@/components/RoommateModal';
 import { InventoryModal } from '@/components/InventoryModal';
+import { HouseModal } from '@/components/HouseModal';
 import { Celebration } from '@/components/Celebration';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
@@ -26,6 +27,8 @@ export default function Home() {
     setShowRoommateModal,
     showInventoryModal,
     setShowInventoryModal,
+    showHouseModal,
+    setShowHouseModal,
     returnRecord,
     filter,
     searchQuery,
@@ -260,6 +263,11 @@ export default function Home() {
       <InventoryModal
         isOpen={showInventoryModal}
         onClose={() => setShowInventoryModal(false)}
+      />
+
+      <HouseModal
+        isOpen={showHouseModal}
+        onClose={() => setShowHouseModal(false)}
       />
 
       <Celebration trigger={celebrate} onComplete={() => setCelebrate(false)} />

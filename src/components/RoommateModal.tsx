@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { ROOMMATE_AVATARS, ROOMMATE_COLORS } from '@/data/constants';
 import { X, Plus, Trash2 } from 'lucide-react';
@@ -9,7 +9,13 @@ interface RoommateModalProps {
 }
 
 export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
-  const { roommates, addRoommate, deleteRoommate } = useBorrowStore();
+  const { roommates, currentHouseId, addRoommate, deleteRoommate, getCurrentHouse } = useBorrowStore();
+  const currentHouse = getCurrentHouse();
+
+  const currentRoommates = useMemo(
+    () => roommates.filter((r) => r.houseId === currentHouseId),
+    [roommates, currentHouseId]
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(ROOMMATE_AVATARS[0]);
@@ -47,6 +53,11 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <span className="text-2xl">👥</span>
             室友管理
+            {currentHouse && (
+              <span className="text-sm font-normal text-gray-500">
+                · {currentHouse.emoji} {currentHouse.name}
+              </span>
+            )}
           </h2>
           <button
             onClick={onClose}
@@ -57,13 +68,13 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
         </div>
 
         <div className="space-y-3 mb-6">
-          {roommates.length === 0 ? (
+          {currentRoommates.length === 0 ? (
             <div className="text-center py-8">
               <span className="text-5xl mb-3 block">🏠</span>
               <p className="text-gray-500 text-sm">还没有添加室友哦~</p>
             </div>
           ) : (
-            roommates.map((roommate) => (
+            currentRoommates.map((roommate) => (
               <div
                 key={roommate.id}
                 className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"

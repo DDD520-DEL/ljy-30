@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { BorrowRecord, Roommate, BorrowType, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem } from '@/types';
-import { MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
+  houses: House[];
+  currentHouseId: string;
+
   records: BorrowRecord[];
   roommates: Roommate[];
   inventory: InventoryItem[];
@@ -12,21 +15,29 @@ interface BorrowState {
   showHistory: boolean;
   showRoommateModal: boolean;
   showInventoryModal: boolean;
+  showHouseModal: boolean;
   searchQuery: string;
   selectedRoommateId: string | null;
   sortType: SortType;
   sortOrder: SortOrder;
 
-  addRecord: (record: Omit<BorrowRecord, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+  createHouse: (data: { name: string; emoji: string }) => House;
+  joinHouse: (inviteCode: string) => House | null;
+  switchHouse: (houseId: string) => void;
+  deleteHouse: (houseId: string) => void;
+  getCurrentHouse: () => House | undefined;
+  setShowHouseModal: (show: boolean) => void;
+
+  addRecord: (record: Omit<BorrowRecord, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'status'>) => void;
   returnRecord: (id: string) => void;
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, updates: Partial<BorrowRecord>) => void;
 
-  addRoommate: (roommate: Omit<Roommate, 'id' | 'createdAt'>) => void;
+  addRoommate: (roommate: Omit<Roommate, 'id' | 'houseId' | 'createdAt'>) => void;
   deleteRoommate: (id: string) => void;
   updateRoommate: (id: string, updates: Partial<Roommate>) => void;
 
-  addInventoryItem: (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt' | 'currentQuantity'>) => void;
+  addInventoryItem: (item: Omit<InventoryItem, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'currentQuantity'>) => void;
   deleteInventoryItem: (id: string) => void;
   updateInventoryItem: (id: string, updates: Partial<InventoryItem>) => void;
   decreaseInventory: (itemId: string, quantity: number) => boolean;
@@ -61,9 +72,23 @@ interface BorrowState {
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
+const generateInviteCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
+const HOUSE_EMOJIS = ['🏠', '🏡', '🏘️', '🏢', '🏬', '🏚️', '🏛️', '🏗️'];
+
 export const useBorrowStore = create<BorrowState>()(
   persist(
     (set, get) => ({
+      houses: MOCK_HOUSES,
+      currentHouseId: DEFAULT_HOUSE_ID,
+
       records: MOCK_RECORDS,
       roommates: MOCK_ROOMMATES,
       inventory: MOCK_INVENTORY,
@@ -71,10 +96,72 @@ export const useBorrowStore = create<BorrowState>()(
       showHistory: false,
       showRoommateModal: false,
       showInventoryModal: false,
+      showHouseModal: false,
       searchQuery: '',
       selectedRoommateId: null,
       sortType: 'returnDate',
       sortOrder: 'asc',
+
+      createHouse: (data) => {
+        const now = new Date().toISOString();
+        const newHouse: House = {
+          id: generateId(),
+          name: data.name.trim(),
+          inviteCode: generateInviteCode(),
+          emoji: data.emoji || HOUSE_EMOJIS[Math.floor(Math.random() * HOUSE_EMOJIS.length)],
+          createdAt: now,
+        };
+        set((state) => ({
+          houses: [...state.houses, newHouse],
+          currentHouseId: newHouse.id,
+        }));
+        return newHouse;
+      },
+
+      joinHouse: (inviteCode) => {
+        const trimmedCode = inviteCode.trim().toUpperCase();
+        const house = get().houses.find((h) => h.inviteCode === trimmedCode);
+        if (house) {
+          set({ currentHouseId: house.id });
+          return house;
+        }
+        return null;
+      },
+
+      switchHouse: (houseId) => {
+        if (get().houses.find((h) => h.id === houseId)) {
+          set({
+            currentHouseId: houseId,
+            selectedRoommateId: null,
+            searchQuery: '',
+          });
+        }
+      },
+
+      deleteHouse: (houseId) => {
+        const houses = get().houses;
+        if (houses.length <= 1) return;
+
+        const newHouses = houses.filter((h) => h.id !== houseId);
+        let newCurrentId = get().currentHouseId;
+        if (newCurrentId === houseId) {
+          newCurrentId = newHouses[0].id;
+        }
+
+        set((state) => ({
+          houses: newHouses,
+          currentHouseId: newCurrentId,
+          records: state.records.filter((r) => r.houseId !== houseId),
+          roommates: state.roommates.filter((r) => r.houseId !== houseId),
+          inventory: state.inventory.filter((i) => i.houseId !== houseId),
+        }));
+      },
+
+      getCurrentHouse: () => {
+        return get().houses.find((h) => h.id === get().currentHouseId);
+      },
+
+      setShowHouseModal: (show) => set({ showHouseModal: show }),
 
       addRecord: (record) => {
         const now = new Date().toISOString();
@@ -82,6 +169,7 @@ export const useBorrowStore = create<BorrowState>()(
         const newRecord: BorrowRecord = {
           ...record,
           id: generateId(),
+          houseId: get().currentHouseId,
           status,
           createdAt: now,
           updatedAt: now,
@@ -140,6 +228,7 @@ export const useBorrowStore = create<BorrowState>()(
         const newRoommate: Roommate = {
           ...roommate,
           id: generateId(),
+          houseId: get().currentHouseId,
           createdAt: now,
         };
         set((state) => ({ roommates: [...state.roommates, newRoommate] }));
@@ -166,6 +255,7 @@ export const useBorrowStore = create<BorrowState>()(
         const newItem: InventoryItem = {
           ...item,
           id: generateId(),
+          houseId: get().currentHouseId,
           totalQuantity: safeTotalQuantity,
           currentQuantity: safeTotalQuantity,
           threshold: safeThreshold,
@@ -250,19 +340,23 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       getInventoryItemById: (id) => {
-        return get().inventory.find((i) => i.id === id);
+        const houseId = get().currentHouseId;
+        return get().inventory.find((i) => i.id === id && i.houseId === houseId);
       },
 
       getInventoryItemByName: (name) => {
-        return get().inventory.find((i) => i.name === name);
+        const houseId = get().currentHouseId;
+        return get().inventory.find((i) => i.name === name && i.houseId === houseId);
       },
 
       getLowStockItems: () => {
-        return get().inventory.filter((i) => i.currentQuantity <= i.threshold);
+        const houseId = get().currentHouseId;
+        return get().inventory.filter((i) => i.houseId === houseId && i.currentQuantity <= i.threshold);
       },
 
       getInventoryStats: () => {
-        const inventory = get().inventory;
+        const houseId = get().currentHouseId;
+        const inventory = get().inventory.filter((i) => i.houseId === houseId);
         const total = inventory.length;
         const lowStock = inventory.filter((i) => i.currentQuantity <= i.threshold).length;
         const consumables = inventory.filter((i) => i.isConsumable).length;
@@ -286,9 +380,10 @@ export const useBorrowStore = create<BorrowState>()(
       setSortOrder: (sortOrder) => set({ sortOrder }),
 
       checkOverdue: () => {
+        const houseId = get().currentHouseId;
         set((state) => ({
           records: state.records.map((r) => {
-            if (r.status === 'active' && isOverdue(r.expectedReturnDate)) {
+            if (r.houseId === houseId && r.status === 'active' && isOverdue(r.expectedReturnDate)) {
               return { ...r, status: 'overdue' as const, updatedAt: new Date().toISOString() };
             }
             return r;
@@ -297,16 +392,19 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       getActiveRecords: () => {
-        return get().records.filter((r) => r.status !== 'returned');
+        const houseId = get().currentHouseId;
+        return get().records.filter((r) => r.houseId === houseId && r.status !== 'returned');
       },
 
       getHistoryRecords: () => {
-        return get().records.filter((r) => r.status === 'returned');
+        const houseId = get().currentHouseId;
+        return get().records.filter((r) => r.houseId === houseId && r.status === 'returned');
       },
 
       getFilteredRecords: () => {
         const { records, filter } = get();
-        const active = records.filter((r) => r.status !== 'returned');
+        const houseId = get().currentHouseId;
+        const active = records.filter((r) => r.houseId === houseId && r.status !== 'returned');
         
         switch (filter) {
           case 'lend':
@@ -321,7 +419,8 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       getStats: () => {
-        const records = get().records;
+        const houseId = get().currentHouseId;
+        const records = get().records.filter((r) => r.houseId === houseId);
         const active = records.filter((r) => r.status !== 'returned');
         const lend = active.filter((r) => r.type === 'lend').length;
         const borrow = active.filter((r) => r.type === 'borrow').length;
@@ -331,7 +430,8 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       getDueReminders: () => {
-        const records = get().records;
+        const houseId = get().currentHouseId;
+        const records = get().records.filter((r) => r.houseId === houseId);
         const active = records.filter((r) => r.status !== 'returned');
         const reminders = active.filter((r) => {
           return isToday(r.expectedReturnDate) || isOverdue(r.expectedReturnDate);
@@ -347,7 +447,8 @@ export const useBorrowStore = create<BorrowState>()(
 
       getSearchFilteredRecords: () => {
         const { records, filter, searchQuery, selectedRoommateId, sortType, sortOrder } = get();
-        let active = records.filter((r) => r.status !== 'returned');
+        const houseId = get().currentHouseId;
+        let active = records.filter((r) => r.houseId === houseId && r.status !== 'returned');
 
         switch (filter) {
           case 'lend':
@@ -389,7 +490,8 @@ export const useBorrowStore = create<BorrowState>()(
 
       getSearchFilteredHistoryRecords: () => {
         const { records, searchQuery, selectedRoommateId, sortType, sortOrder } = get();
-        let history = records.filter((r) => r.status === 'returned');
+        const houseId = get().currentHouseId;
+        let history = records.filter((r) => r.houseId === houseId && r.status === 'returned');
 
         if (searchQuery.trim()) {
           const query = searchQuery.trim().toLowerCase();
@@ -418,7 +520,8 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       importRecords: (importedRecords) => {
-        const existingRecords = get().records;
+        const houseId = get().currentHouseId;
+        const existingRecords = get().records.filter((r) => r.houseId === houseId);
 
         const makeKey = (r: BorrowRecord) =>
           `${r.itemName}|${r.roommateId}|${r.borrowDate}|${r.expectedReturnDate}|${r.actualReturnDate || ''}`;
@@ -438,6 +541,7 @@ export const useBorrowStore = create<BorrowState>()(
             const newRecord: BorrowRecord = {
               ...record,
               id: generateId(),
+              houseId,
               createdAt: record.createdAt || now,
               updatedAt: now,
             };

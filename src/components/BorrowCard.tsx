@@ -1,4 +1,4 @@
-import type { BorrowRecord, InventoryItem } from '@/types';
+import type { BorrowRecord } from '@/types';
 import { getDueLabel, isOverdue } from '@/utils/date';
 import { Check, ArrowUpRight, ArrowDownLeft, Package } from 'lucide-react';
 import { useBorrowStore } from '@/store/useBorrowStore';

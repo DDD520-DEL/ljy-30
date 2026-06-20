@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { InventoryItem } from '@/types';
 import { X, Plus, Edit2, Trash2, Package, AlertTriangle, Check, PlusCircle, MinusCircle } from 'lucide-react';
@@ -13,12 +13,20 @@ type EditMode = 'list' | 'add' | 'edit';
 export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
   const {
     inventory,
+    currentHouseId,
     addInventoryItem,
     updateInventoryItem,
     deleteInventoryItem,
     restockInventory,
     getLowStockItems,
+    getCurrentHouse,
   } = useBorrowStore();
+  const currentHouse = getCurrentHouse();
+
+  const currentInventory = useMemo(
+    () => inventory.filter((i) => i.houseId === currentHouseId),
+    [inventory, currentHouseId]
+  );
 
   const [editMode, setEditMode] = useState<EditMode>('list');
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -69,7 +77,6 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
   };
 
   const willAdjustCurrent = editMode === 'edit' && editingItem && formData.totalQuantity < editingItem.currentQuantity;
-  const willAdjustThreshold = formData.threshold > formData.totalQuantity;
 
   const handleSubmit = () => {
     if (!formData.name.trim()) return;
@@ -170,6 +177,11 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
               <>
                 <span className="text-2xl">📦</span>
                 物品库存
+                {currentHouse && (
+                  <span className="text-sm font-normal text-gray-500">
+                    · {currentHouse.emoji} {currentHouse.name}
+                  </span>
+                )}
               </>
             ) : editMode === 'add' ? (
               <>
@@ -210,7 +222,7 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
             )}
 
             <div className="flex-1 overflow-y-auto -mx-6 px-6">
-              {inventory.length === 0 ? (
+              {currentInventory.length === 0 ? (
                 <div className="py-12 text-center">
                   <div className="text-5xl mb-3">📦</div>
                   <p className="text-gray-500">还没有库存物品</p>
@@ -218,7 +230,7 @@ export function InventoryModal({ isOpen, onClose }: InventoryModalProps) {
                 </div>
               ) : (
                 <div className="space-y-3 pb-4">
-                  {inventory.map((item) => (
+                  {currentInventory.map((item) => (
                     <div
                       key={item.id}
                       className={`bg-white rounded-2xl p-4 border-2 transition-all ${

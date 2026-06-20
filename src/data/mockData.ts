@@ -1,4 +1,4 @@
-import type { Roommate, BorrowRecord, InventoryItem } from '@/types';
+import type { House, Roommate, BorrowRecord, InventoryItem } from '@/types';
 
 const now = new Date();
 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -8,9 +8,29 @@ const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 const twoDaysLater = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
 const oneWeekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+export const MOCK_HOUSES: House[] = [
+  {
+    id: 'h1',
+    name: '阳光公寓',
+    inviteCode: 'SUN123',
+    emoji: '🏠',
+    createdAt: threeDaysAgo.toISOString(),
+  },
+  {
+    id: 'h2',
+    name: '温馨小窝',
+    inviteCode: 'COZY456',
+    emoji: '🏡',
+    createdAt: twoDaysAgo.toISOString(),
+  },
+];
+
+export const DEFAULT_HOUSE_ID = 'h1';
+
 export const MOCK_ROOMMATES: Roommate[] = [
   {
     id: 'r1',
+    houseId: 'h1',
     name: '小明',
     avatar: '🐱',
     color: '#FF8C69',
@@ -18,6 +38,7 @@ export const MOCK_ROOMMATES: Roommate[] = [
   },
   {
     id: 'r2',
+    houseId: 'h1',
     name: '小红',
     avatar: '🐰',
     color: '#F472B6',
@@ -25,6 +46,7 @@ export const MOCK_ROOMMATES: Roommate[] = [
   },
   {
     id: 'r3',
+    houseId: 'h1',
     name: '大壮',
     avatar: '🐻',
     color: '#60A5FA',
@@ -32,16 +54,34 @@ export const MOCK_ROOMMATES: Roommate[] = [
   },
   {
     id: 'r4',
+    houseId: 'h1',
     name: '阿花',
     avatar: '🦊',
     color: '#A78BFA',
     createdAt: twoDaysAgo.toISOString(),
+  },
+  {
+    id: 'r5',
+    houseId: 'h2',
+    name: '小李',
+    avatar: '🐼',
+    color: '#34D399',
+    createdAt: twoDaysAgo.toISOString(),
+  },
+  {
+    id: 'r6',
+    houseId: 'h2',
+    name: '小王',
+    avatar: '🐶',
+    color: '#FBBF24',
+    createdAt: oneDayAgo.toISOString(),
   },
 ];
 
 export const MOCK_INVENTORY: InventoryItem[] = [
   {
     id: 'inv1',
+    houseId: 'h1',
     name: '洗衣液',
     emoji: '🧴',
     isConsumable: true,
@@ -54,6 +94,7 @@ export const MOCK_INVENTORY: InventoryItem[] = [
   },
   {
     id: 'inv2',
+    houseId: 'h1',
     name: '纸巾',
     emoji: '🧻',
     isConsumable: true,
@@ -66,6 +107,7 @@ export const MOCK_INVENTORY: InventoryItem[] = [
   },
   {
     id: 'inv3',
+    houseId: 'h1',
     name: '零食',
     emoji: '🍿',
     isConsumable: true,
@@ -78,6 +120,7 @@ export const MOCK_INVENTORY: InventoryItem[] = [
   },
   {
     id: 'inv4',
+    houseId: 'h1',
     name: '充电器',
     emoji: '🔌',
     isConsumable: false,
@@ -90,6 +133,7 @@ export const MOCK_INVENTORY: InventoryItem[] = [
   },
   {
     id: 'inv5',
+    houseId: 'h1',
     name: '雨伞',
     emoji: '☂️',
     isConsumable: false,
@@ -102,6 +146,7 @@ export const MOCK_INVENTORY: InventoryItem[] = [
   },
   {
     id: 'inv6',
+    houseId: 'h1',
     name: '饮料',
     emoji: '🥤',
     isConsumable: true,
@@ -112,11 +157,38 @@ export const MOCK_INVENTORY: InventoryItem[] = [
     createdAt: twoDaysAgo.toISOString(),
     updatedAt: oneDayAgo.toISOString(),
   },
+  {
+    id: 'inv7',
+    houseId: 'h2',
+    name: '洗发水',
+    emoji: '🧴',
+    isConsumable: true,
+    totalQuantity: 5,
+    currentQuantity: 4,
+    threshold: 2,
+    unit: '瓶',
+    createdAt: twoDaysAgo.toISOString(),
+    updatedAt: oneDayAgo.toISOString(),
+  },
+  {
+    id: 'inv8',
+    houseId: 'h2',
+    name: '水壶',
+    emoji: '🫖',
+    isConsumable: false,
+    totalQuantity: 2,
+    currentQuantity: 2,
+    threshold: 1,
+    unit: '个',
+    createdAt: twoDaysAgo.toISOString(),
+    updatedAt: twoDaysAgo.toISOString(),
+  },
 ];
 
 export const MOCK_RECORDS: BorrowRecord[] = [
   {
     id: '1',
+    houseId: 'h1',
     type: 'lend',
     itemName: '洗衣液',
     itemEmoji: '🧴',
@@ -133,6 +205,7 @@ export const MOCK_RECORDS: BorrowRecord[] = [
   },
   {
     id: '2',
+    houseId: 'h1',
     type: 'borrow',
     itemName: '充电器',
     itemEmoji: '🔌',
@@ -150,6 +223,7 @@ export const MOCK_RECORDS: BorrowRecord[] = [
   },
   {
     id: '3',
+    houseId: 'h1',
     type: 'lend',
     itemName: '吹风机',
     itemEmoji: '💨',
@@ -165,6 +239,7 @@ export const MOCK_RECORDS: BorrowRecord[] = [
   },
   {
     id: '4',
+    houseId: 'h1',
     type: 'borrow',
     itemName: '雨伞',
     itemEmoji: '☂️',
@@ -181,6 +256,7 @@ export const MOCK_RECORDS: BorrowRecord[] = [
   },
   {
     id: '5',
+    houseId: 'h1',
     type: 'lend',
     itemName: '零食',
     itemEmoji: '🍿',
@@ -196,5 +272,40 @@ export const MOCK_RECORDS: BorrowRecord[] = [
     note: '还了两大包薯片~',
     createdAt: threeDaysAgo.toISOString(),
     updatedAt: oneDayAgo.toISOString(),
+  },
+  {
+    id: '6',
+    houseId: 'h2',
+    type: 'lend',
+    itemName: '洗发水',
+    itemEmoji: '🧴',
+    itemId: 'inv7',
+    quantity: 1,
+    roommateId: 'r5',
+    roommateName: '小李',
+    roommateAvatar: '🐼',
+    borrowDate: oneDayAgo.toISOString(),
+    expectedReturnDate: twoDaysLater.toISOString(),
+    status: 'active',
+    note: '还剩小半瓶',
+    createdAt: oneDayAgo.toISOString(),
+    updatedAt: oneDayAgo.toISOString(),
+  },
+  {
+    id: '7',
+    houseId: 'h2',
+    type: 'borrow',
+    itemName: '水壶',
+    itemEmoji: '🫖',
+    itemId: 'inv8',
+    quantity: 1,
+    roommateId: 'r6',
+    roommateName: '小王',
+    roommateAvatar: '🐶',
+    borrowDate: twoDaysAgo.toISOString(),
+    expectedReturnDate: oneDayLater.toISOString(),
+    status: 'active',
+    createdAt: twoDaysAgo.toISOString(),
+    updatedAt: twoDaysAgo.toISOString(),
   },
 ];

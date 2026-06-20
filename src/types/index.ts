@@ -8,8 +8,17 @@ export type SortType = 'returnDate' | 'createdAt';
 
 export type SortOrder = 'asc' | 'desc';
 
+export interface House {
+  id: string;
+  name: string;
+  inviteCode: string;
+  emoji: string;
+  createdAt: string;
+}
+
 export interface Roommate {
   id: string;
+  houseId: string;
   name: string;
   avatar: string;
   color: string;
@@ -18,6 +27,7 @@ export interface Roommate {
 
 export interface BorrowRecord {
   id: string;
+  houseId: string;
   type: BorrowType;
   itemName: string;
   itemEmoji: string;
@@ -49,6 +59,7 @@ export interface CelebrationEmoji {
 
 export interface InventoryItem {
   id: string;
+  houseId: string;
   name: string;
   emoji: string;
   isConsumable: boolean;
