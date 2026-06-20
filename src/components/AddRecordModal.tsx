@@ -111,6 +111,9 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
     setUseInventoryItem(template.useInventoryItem);
     setShowItems(false);
     setShowRoommates(false);
+    setEditingTemplateId(null);
+    setShowSaveTemplate(false);
+    setTemplateName('');
   };
 
   const handleSaveAsTemplate = () => {
