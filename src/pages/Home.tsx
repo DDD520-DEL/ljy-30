@@ -14,6 +14,7 @@ import { Celebration } from '@/components/Celebration';
 import { CompensationModal } from '@/components/CompensationModal';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
+import { TabBar } from '@/components/TabBar';
 import { useNotification } from '@/hooks/useNotification';
 import { Plus, ChevronDown, ChevronUp, Package, Download, Upload } from 'lucide-react';
 import { recordsToCSV, csvToRecords, downloadCSV, formatDateForFilename } from '@/utils/csv';
@@ -243,11 +244,13 @@ export default function Home() {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center z-40"
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center z-40"
         >
           <Plus className="w-7 h-7" />
         </button>
       </div>
+
+      <TabBar />
 
       <AddRecordModal
         isOpen={showAddModal}
