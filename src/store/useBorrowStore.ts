@@ -1,15 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { BorrowRecord, Roommate, BorrowType, FilterType, BorrowStatus, SortType, SortOrder } from '@/types';
-import { MOCK_RECORDS, MOCK_ROOMMATES } from '@/data/mockData';
+import type { BorrowRecord, Roommate, BorrowType, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem } from '@/types';
+import { MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
   records: BorrowRecord[];
   roommates: Roommate[];
+  inventory: InventoryItem[];
   filter: FilterType;
   showHistory: boolean;
   showRoommateModal: boolean;
+  showInventoryModal: boolean;
   searchQuery: string;
   selectedRoommateId: string | null;
   sortType: SortType;
@@ -24,9 +26,21 @@ interface BorrowState {
   deleteRoommate: (id: string) => void;
   updateRoommate: (id: string, updates: Partial<Roommate>) => void;
 
+  addInventoryItem: (item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt' | 'currentQuantity'>) => void;
+  deleteInventoryItem: (id: string) => void;
+  updateInventoryItem: (id: string, updates: Partial<InventoryItem>) => void;
+  decreaseInventory: (itemId: string, quantity: number) => boolean;
+  increaseInventory: (itemId: string, quantity: number) => void;
+  restockInventory: (itemId: string, amount: number) => void;
+  getInventoryItemById: (id: string) => InventoryItem | undefined;
+  getInventoryItemByName: (name: string) => InventoryItem | undefined;
+  getLowStockItems: () => InventoryItem[];
+  getInventoryStats: () => { total: number; lowStock: number; consumables: number };
+
   setFilter: (filter: FilterType) => void;
   toggleHistory: () => void;
   setShowRoommateModal: (show: boolean) => void;
+  setShowInventoryModal: (show: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSelectedRoommateId: (id: string | null) => void;
   setSortType: (type: SortType) => void;
@@ -50,9 +64,11 @@ export const useBorrowStore = create<BorrowState>()(
     (set, get) => ({
       records: MOCK_RECORDS,
       roommates: MOCK_ROOMMATES,
+      inventory: MOCK_INVENTORY,
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
+      showInventoryModal: false,
       searchQuery: '',
       selectedRoommateId: null,
       sortType: 'returnDate',
@@ -68,11 +84,24 @@ export const useBorrowStore = create<BorrowState>()(
           createdAt: now,
           updatedAt: now,
         };
+
+        if (record.type === 'lend' && record.itemId) {
+          const quantity = record.quantity || 1;
+          get().decreaseInventory(record.itemId, quantity);
+        }
+
         set((state) => ({ records: [newRecord, ...state.records] }));
       },
 
       returnRecord: (id) => {
         const now = new Date().toISOString();
+        const record = get().records.find((r) => r.id === id);
+
+        if (record && record.type === 'lend' && record.itemId) {
+          const quantity = record.quantity || 1;
+          get().increaseInventory(record.itemId, quantity);
+        }
+
         set((state) => ({
           records: state.records.map((r) =>
             r.id === id
@@ -83,6 +112,13 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       deleteRecord: (id) => {
+        const record = get().records.find((r) => r.id === id);
+
+        if (record && record.status !== 'returned' && record.type === 'lend' && record.itemId) {
+          const quantity = record.quantity || 1;
+          get().increaseInventory(record.itemId, quantity);
+        }
+
         set((state) => ({
           records: state.records.filter((r) => r.id !== id),
         }));
@@ -121,11 +157,103 @@ export const useBorrowStore = create<BorrowState>()(
         }));
       },
 
+      addInventoryItem: (item) => {
+        const now = new Date().toISOString();
+        const newItem: InventoryItem = {
+          ...item,
+          id: generateId(),
+          currentQuantity: item.totalQuantity,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ inventory: [...state.inventory, newItem] }));
+      },
+
+      deleteInventoryItem: (id) => {
+        set((state) => ({
+          inventory: state.inventory.filter((i) => i.id !== id),
+        }));
+      },
+
+      updateInventoryItem: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          inventory: state.inventory.map((i) =>
+            i.id === id ? { ...i, ...updates, updatedAt: now } : i
+          ),
+        }));
+      },
+
+      decreaseInventory: (itemId, quantity) => {
+        const item = get().inventory.find((i) => i.id === itemId);
+        if (!item || item.currentQuantity < quantity) {
+          return false;
+        }
+        const now = new Date().toISOString();
+        set((state) => ({
+          inventory: state.inventory.map((i) =>
+            i.id === itemId
+              ? { ...i, currentQuantity: i.currentQuantity - quantity, updatedAt: now }
+              : i
+          ),
+        }));
+        return true;
+      },
+
+      increaseInventory: (itemId, quantity) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          inventory: state.inventory.map((i) =>
+            i.id === itemId
+              ? { ...i, currentQuantity: i.currentQuantity + quantity, updatedAt: now }
+              : i
+          ),
+        }));
+      },
+
+      restockInventory: (itemId, amount) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          inventory: state.inventory.map((i) =>
+            i.id === itemId
+              ? {
+                  ...i,
+                  currentQuantity: i.currentQuantity + amount,
+                  totalQuantity: i.totalQuantity + amount,
+                  updatedAt: now,
+                }
+              : i
+          ),
+        }));
+      },
+
+      getInventoryItemById: (id) => {
+        return get().inventory.find((i) => i.id === id);
+      },
+
+      getInventoryItemByName: (name) => {
+        return get().inventory.find((i) => i.name === name);
+      },
+
+      getLowStockItems: () => {
+        return get().inventory.filter((i) => i.currentQuantity <= i.threshold);
+      },
+
+      getInventoryStats: () => {
+        const inventory = get().inventory;
+        const total = inventory.length;
+        const lowStock = inventory.filter((i) => i.currentQuantity <= i.threshold).length;
+        const consumables = inventory.filter((i) => i.isConsumable).length;
+        return { total, lowStock, consumables };
+      },
+
       setFilter: (filter) => set({ filter }),
 
       toggleHistory: () => set((state) => ({ showHistory: !state.showHistory })),
 
       setShowRoommateModal: (show) => set({ showRoommateModal: show }),
+
+      setShowInventoryModal: (show) => set({ showInventoryModal: show }),
 
       setSearchQuery: (searchQuery) => set({ searchQuery }),
 

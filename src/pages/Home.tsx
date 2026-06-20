@@ -8,10 +8,12 @@ import { EmptyState } from '@/components/EmptyState';
 import { AddRecordModal } from '@/components/AddRecordModal';
 import { RecordDetailModal } from '@/components/RecordDetailModal';
 import { RoommateModal } from '@/components/RoommateModal';
+import { InventoryModal } from '@/components/InventoryModal';
 import { Celebration } from '@/components/Celebration';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
+import { LowStockBanner } from '@/components/LowStockBanner';
 import { useNotification } from '@/hooks/useNotification';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 
 export default function Home() {
   const {
@@ -21,16 +23,21 @@ export default function Home() {
     toggleHistory,
     showRoommateModal,
     setShowRoommateModal,
+    showInventoryModal,
+    setShowInventoryModal,
     returnRecord,
     filter,
     searchQuery,
     selectedRoommateId,
+    getInventoryStats,
   } = useBorrowStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<BorrowRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+
+  const inventoryStats = getInventoryStats();
 
   const openRecordDetail = useCallback((recordOrId: BorrowRecord | string) => {
     if (typeof recordOrId === 'string') {
@@ -74,8 +81,24 @@ export default function Home() {
         <ReturnReminderBanner onItemClick={(record) => openRecordDetail(record)} />
         <Header />
 
+        <LowStockBanner />
+
         <div className="px-5 py-4">
-          <FilterTabs />
+          <div className="flex items-center justify-between mb-4">
+            <FilterTabs />
+            <button
+              onClick={() => setShowInventoryModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all text-sm font-medium text-gray-700"
+            >
+              <Package className="w-4 h-4 text-purple-500" />
+              <span>库存</span>
+              {inventoryStats.lowStock > 0 && (
+                <span className="w-5 h-5 bg-danger-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {inventoryStats.lowStock}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="px-5 pb-4">
@@ -155,6 +178,11 @@ export default function Home() {
       <RoommateModal
         isOpen={showRoommateModal}
         onClose={() => setShowRoommateModal(false)}
+      />
+
+      <InventoryModal
+        isOpen={showInventoryModal}
+        onClose={() => setShowInventoryModal(false)}
       />
 
       <Celebration trigger={celebrate} onComplete={() => setCelebrate(false)} />

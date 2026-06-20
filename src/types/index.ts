@@ -21,6 +21,8 @@ export interface BorrowRecord {
   type: BorrowType;
   itemName: string;
   itemEmoji: string;
+  itemId?: string;
+  quantity?: number;
   roommateId: string;
   roommateName: string;
   roommateAvatar: string;
@@ -43,4 +45,17 @@ export interface CelebrationEmoji {
   emoji: string;
   left: number;
   delay: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  emoji: string;
+  isConsumable: boolean;
+  totalQuantity: number;
+  currentQuantity: number;
+  threshold: number;
+  unit: string;
+  createdAt: string;
+  updatedAt: string;
 }

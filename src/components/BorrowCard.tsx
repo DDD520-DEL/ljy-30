@@ -1,6 +1,7 @@
-import type { BorrowRecord } from '@/types';
+import type { BorrowRecord, InventoryItem } from '@/types';
 import { getDueLabel, isOverdue } from '@/utils/date';
-import { Check, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Check, ArrowUpRight, ArrowDownLeft, Package } from 'lucide-react';
+import { useBorrowStore } from '@/store/useBorrowStore';
 
 interface BorrowCardProps {
   record: BorrowRecord;
@@ -10,9 +11,13 @@ interface BorrowCardProps {
 }
 
 export function BorrowCard({ record, onClick, onReturn, isReturned = false }: BorrowCardProps) {
+  const { getInventoryItemById } = useBorrowStore();
   const dueInfo = getDueLabel(record.expectedReturnDate);
   const isLend = record.type === 'lend';
   const isRecordOverdue = !isReturned && isOverdue(record.expectedReturnDate);
+
+  const inventoryItem = record.itemId ? getInventoryItemById(record.itemId) : undefined;
+  const isLowStock = inventoryItem && inventoryItem.currentQuantity <= inventoryItem.threshold;
 
   const getBorderColor = () => {
     if (isReturned) return 'border-gray-200';
@@ -39,6 +44,13 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
       default:
         return 'bg-gray-100 text-gray-600 border-gray-200';
     }
+  };
+
+  const getStockStatusColor = () => {
+    if (!inventoryItem) return 'text-gray-500';
+    if (inventoryItem.currentQuantity <= 0) return 'text-danger-500';
+    if (isLowStock) return 'text-warning-500';
+    return 'text-success-500';
   };
 
   return (
@@ -70,6 +82,11 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
                 </span>
               )}
             </span>
+            {record.quantity && record.quantity > 1 && (
+              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full flex-shrink-0">
+                ×{record.quantity}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
@@ -77,6 +94,20 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
             <span>{record.roommateName}</span>
             {isLend ? <span className="text-gray-400">借了我的</span> : <span className="text-gray-400">借我的</span>}
           </div>
+
+          {inventoryItem && (
+            <div className="flex items-center gap-2 mb-2">
+              <Package className={`w-3.5 h-3.5 ${getStockStatusColor()}`} />
+              <span className={`text-xs font-medium ${getStockStatusColor()}`}>
+                库存: {inventoryItem.currentQuantity}{inventoryItem.unit}
+              </span>
+              {isLowStock && !isReturned && (
+                <span className="text-xs text-warning-600 bg-warning-100 px-1.5 py-0.5 rounded">
+                  库存不足
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <span className={`text-xs px-2.5 py-1 rounded-full border ${getDueBadgeStyle()}`}>

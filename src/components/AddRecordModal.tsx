@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { COMMON_ITEMS, RETURN_TIME_OPTIONS } from '@/data/constants';
-import type { BorrowType, ItemOption } from '@/types';
-import { X, Plus, ChevronDown } from 'lucide-react';
+import type { BorrowType, ItemOption, InventoryItem } from '@/types';
+import { X, Plus, ChevronDown, Package, AlertTriangle } from 'lucide-react';
 import { addDays, formatDate } from '@/utils/date';
 
 interface AddRecordModalProps {
@@ -11,10 +11,12 @@ interface AddRecordModalProps {
 }
 
 export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
-  const { addRecord, roommates } = useBorrowStore();
+  const { addRecord, roommates, inventory, getInventoryItemByName } = useBorrowStore();
   const [type, setType] = useState<BorrowType>('lend');
   const [itemName, setItemName] = useState('');
   const [itemEmoji, setItemEmoji] = useState('📦');
+  const [itemId, setItemId] = useState<string | undefined>(undefined);
+  const [quantity, setQuantity] = useState(1);
   const [roommateId, setRoommateId] = useState('');
   const [returnDays, setReturnDays] = useState(3);
   const [customDate, setCustomDate] = useState('');
@@ -22,28 +24,49 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
   const [note, setNote] = useState('');
   const [showItems, setShowItems] = useState(false);
   const [showRoommates, setShowRoommates] = useState(false);
+  const [useInventoryItem, setUseInventoryItem] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setType('lend');
       setItemName('');
       setItemEmoji('📦');
+      setItemId(undefined);
+      setQuantity(1);
       setRoommateId(roommates[0]?.id || '');
       setReturnDays(3);
       setCustomDate('');
       setUseCustomDate(false);
       setNote('');
+      setShowItems(false);
+      setShowRoommates(false);
+      setUseInventoryItem(false);
     }
   }, [isOpen, roommates]);
 
   const handleSelectItem = (item: ItemOption) => {
     setItemName(item.name);
     setItemEmoji(item.emoji);
+    setItemId(undefined);
+    setUseInventoryItem(false);
     setShowItems(false);
   };
 
+  const handleSelectInventoryItem = (item: InventoryItem) => {
+    setItemName(item.name);
+    setItemEmoji(item.emoji);
+    setItemId(item.id);
+    setQuantity(1);
+    setUseInventoryItem(true);
+    setShowItems(false);
+  };
+
+  const selectedInventoryItem = itemId ? inventory.find((i) => i.id === itemId) : undefined;
+  const canBorrow = selectedInventoryItem ? selectedInventoryItem.currentQuantity >= quantity : true;
+
   const handleSubmit = () => {
     if (!itemName.trim() || !roommateId) return;
+    if (type === 'lend' && selectedInventoryItem && !canBorrow) return;
 
     const roommate = roommates.find((r) => r.id === roommateId);
     if (!roommate) return;
@@ -56,6 +79,8 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
       type,
       itemName: itemName.trim(),
       itemEmoji,
+      itemId: useInventoryItem ? itemId : undefined,
+      quantity: useInventoryItem ? quantity : undefined,
       roommateId,
       roommateName: roommate.name,
       roommateAvatar: roommate.avatar,
@@ -70,6 +95,8 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
   const selectedRoommate = roommates.find((r) => r.id === roommateId);
 
   if (!isOpen) return null;
+
+  const lowStockItems = inventory.filter((i) => i.currentQuantity <= i.threshold);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -116,41 +143,156 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
 
         <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              物品名称
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">
+                物品名称
+              </label>
+              <button
+                onClick={() => {
+                  setUseInventoryItem(!useInventoryItem);
+                  if (!useInventoryItem) {
+                    setShowItems(true);
+                  } else {
+                    setItemId(undefined);
+                  }
+                }}
+                className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                  useInventoryItem
+                    ? 'bg-purple-100 text-purple-600'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {useInventoryItem ? '📦 从库存选' : '✏️ 手动输入'}
+              </button>
+            </div>
             <div className="relative">
               <div className="flex items-center gap-2 p-3 border-2 border-gray-200 rounded-xl focus-within:border-primary-400 transition-colors">
                 <span className="text-2xl">{itemEmoji}</span>
                 <input
                   type="text"
                   value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
+                  onChange={(e) => {
+                    setItemName(e.target.value);
+                    if (useInventoryItem) {
+                      setItemId(undefined);
+                    }
+                  }}
                   onFocus={() => setShowItems(true)}
-                  placeholder="输入物品名称"
+                  placeholder={useInventoryItem ? '选择库存物品' : '输入物品名称'}
                   className="flex-1 outline-none text-gray-800 placeholder-gray-400"
+                  readOnly={useInventoryItem}
                 />
+                {useInventoryItem && selectedInventoryItem && (
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>库存: {selectedInventoryItem.currentQuantity}{selectedInventoryItem.unit}</span>
+                  </div>
+                )}
               </div>
 
               {showItems && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
-                  <div className="p-2 grid grid-cols-4 gap-1">
-                    {COMMON_ITEMS.map((item) => (
-                      <button
-                        key={item.name}
-                        onClick={() => handleSelectItem(item)}
-                        className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                      >
-                        <span className="text-2xl">{item.emoji}</span>
-                        <span className="text-xs text-gray-600 mt-1 truncate w-full text-center">
-                          {item.name}
-                        </span>
-                      </button>
-                    ))}
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-64 overflow-y-auto">
+                  {useInventoryItem && inventory.length > 0 && (
+                    <div className="p-2 border-b border-gray-100">
+                      <p className="text-xs text-gray-500 mb-2 px-2">库存物品</p>
+                      <div className="space-y-1">
+                        {inventory.map((item) => {
+                          const isLow = item.currentQuantity <= item.threshold;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => handleSelectInventoryItem(item)}
+                              className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                                itemId === item.id ? 'bg-primary-50' : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <span className="text-2xl">{item.emoji}</span>
+                              <div className="flex-1 text-left">
+                                <span className="text-sm text-gray-800 block">{item.name}</span>
+                                <span className={`text-xs ${isLow ? 'text-warning-500' : 'text-gray-400'}`}>
+                                  库存: {item.currentQuantity}{item.unit}
+                                  {isLow && ' · 库存不足'}
+                                </span>
+                              </div>
+                              {item.isConsumable && (
+                                <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full">
+                                  消耗品
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="text-xs text-gray-500 mb-2 px-2">常用物品</p>
+                    <div className="grid grid-cols-4 gap-1">
+                      {COMMON_ITEMS.map((item) => (
+                        <button
+                          key={item.name}
+                          onClick={() => handleSelectItem(item)}
+                          className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <span className="text-2xl">{item.emoji}</span>
+                          <span className="text-xs text-gray-600 mt-1 truncate w-full text-center">
+                            {item.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
+
+            {useInventoryItem && selectedInventoryItem && type === 'lend' && (
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  借出数量
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <span className="text-xl font-bold text-gray-600">-</span>
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedInventoryItem.currentQuantity}
+                    value={quantity}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                      setQuantity(Math.min(val, selectedInventoryItem.currentQuantity));
+                    }}
+                    className="w-20 text-center p-2 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none text-lg font-bold"
+                  />
+                  <button
+                    onClick={() => setQuantity(Math.min(selectedInventoryItem.currentQuantity, quantity + 1))}
+                    className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
+                    <span className="text-xl font-bold text-gray-600">+</span>
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    / {selectedInventoryItem.currentQuantity} {selectedInventoryItem.unit}
+                  </span>
+                </div>
+                {selectedInventoryItem.currentQuantity <= selectedInventoryItem.threshold && (
+                  <div className="flex items-center gap-1.5 mt-2 text-warning-600 text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>该物品库存不足，建议尽快补货</span>
+                  </div>
+                )}
+                {!canBorrow && (
+                  <div className="flex items-center gap-1.5 mt-2 text-danger-600 text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>库存不足，无法借出该数量</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -247,7 +389,7 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
 
         <button
           onClick={handleSubmit}
-          disabled={!itemName.trim() || !roommateId}
+          disabled={!itemName.trim() || !roommateId || (type === 'lend' && selectedInventoryItem && !canBorrow)}
           className="w-full mt-6 py-4 bg-gradient-to-r from-primary-400 to-primary-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />

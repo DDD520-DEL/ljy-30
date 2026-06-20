@@ -1,7 +1,7 @@
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { formatDateShort, getDueLabel } from '@/utils/date';
-import { X, Check, Trash2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { X, Check, Trash2, ArrowUpRight, ArrowDownLeft, Package, AlertTriangle } from 'lucide-react';
 
 interface RecordDetailModalProps {
   record: BorrowRecord | null;
@@ -11,13 +11,15 @@ interface RecordDetailModalProps {
 }
 
 export function RecordDetailModal({ record, isOpen, onClose, onReturn }: RecordDetailModalProps) {
-  const { deleteRecord } = useBorrowStore();
+  const { deleteRecord, getInventoryItemById } = useBorrowStore();
 
   if (!record || !isOpen) return null;
 
   const isLend = record.type === 'lend';
   const isReturned = record.status === 'returned';
   const dueInfo = getDueLabel(record.expectedReturnDate);
+  const inventoryItem = record.itemId ? getInventoryItemById(record.itemId) : undefined;
+  const isLowStock = inventoryItem && inventoryItem.currentQuantity <= inventoryItem.threshold;
 
   const handleDelete = () => {
     if (confirm('确定要删除这条记录吗？')) {
@@ -107,6 +109,59 @@ export function RecordDetailModal({ record, isOpen, onClose, onReturn }: RecordD
               <span className="font-medium text-success-700">
                 ✅ 已于 {formatDateShort(record.actualReturnDate)} 归还
               </span>
+            </div>
+          )}
+
+          {inventoryItem && (
+            <div className={`p-4 rounded-2xl ${
+              isLowStock ? 'bg-warning-50 border border-warning-200' : 'bg-purple-50 border border-purple-100'
+            }`}>
+              <p className={`text-xs mb-2 flex items-center gap-1 ${
+                isLowStock ? 'text-warning-600' : 'text-purple-600'
+              }`}>
+                <Package className="w-3.5 h-3.5" />
+                库存信息
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">当前库存</span>
+                  <span className={`font-bold ${
+                    inventoryItem.currentQuantity <= 0 ? 'text-danger-500' :
+                    isLowStock ? 'text-warning-600' : 'text-success-600'
+                  }`}>
+                    {inventoryItem.currentQuantity} {inventoryItem.unit}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      inventoryItem.currentQuantity <= 0 ? 'bg-danger-400' :
+                      isLowStock ? 'bg-warning-400' : 'bg-success-400'
+                    }`}
+                    style={{
+                      width: `${inventoryItem.totalQuantity > 0 ? (inventoryItem.currentQuantity / inventoryItem.totalQuantity) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>总量: {inventoryItem.totalQuantity} {inventoryItem.unit}</span>
+                  <span>安全阈值: {inventoryItem.threshold} {inventoryItem.unit}</span>
+                </div>
+                {record.quantity && record.quantity > 1 && (
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-600">本次借出</span>
+                    <span className="font-medium text-gray-800">
+                      {record.quantity} {inventoryItem.unit}
+                    </span>
+                  </div>
+                )}
+                {isLowStock && !isReturned && (
+                  <div className="flex items-center gap-1.5 pt-2 text-warning-600 text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>库存不足，建议尽快补货</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
