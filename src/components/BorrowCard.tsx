@@ -1,6 +1,6 @@
 import type { BorrowRecord } from '@/types';
 import { getDueLabel, isOverdue } from '@/utils/date';
-import { Check, ArrowUpRight, ArrowDownLeft, Package } from 'lucide-react';
+import { Check, ArrowUpRight, ArrowDownLeft, Package, AlertCircle, DollarSign, Clock } from 'lucide-react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 
 interface BorrowCardProps {
@@ -11,13 +11,14 @@ interface BorrowCardProps {
 }
 
 export function BorrowCard({ record, onClick, onReturn, isReturned = false }: BorrowCardProps) {
-  const { getInventoryItemById } = useBorrowStore();
+  const { getInventoryItemById, getCompensationByRecordId } = useBorrowStore();
   const dueInfo = getDueLabel(record.expectedReturnDate);
   const isLend = record.type === 'lend';
   const isRecordOverdue = !isReturned && isOverdue(record.expectedReturnDate);
 
   const inventoryItem = record.itemId ? getInventoryItemById(record.itemId) : undefined;
   const isLowStock = inventoryItem && inventoryItem.currentQuantity <= inventoryItem.threshold;
+  const compensation = getCompensationByRecordId(record.id);
 
   const getBorderColor = () => {
     if (isReturned) return 'border-gray-200';
@@ -141,6 +142,30 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
         <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400 flex items-center gap-1">
           <span>📅</span>
           <span>归还于 {new Date(record.actualReturnDate).toLocaleDateString('zh-CN')}</span>
+        </div>
+      )}
+
+      {record.isDamaged && (
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs px-2 py-0.5 bg-danger-100 text-danger-600 rounded-full inline-flex items-center gap-0.5">
+              <AlertCircle className="w-3 h-3" />
+              物品损坏
+            </span>
+            {compensation && (
+              <span className={`text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-0.5 ${
+                compensation.status === 'pending'
+                  ? 'bg-warning-100 text-warning-600'
+                  : 'bg-success-100 text-success-600'
+              }`}>
+                {compensation.status === 'pending' ? (
+                  <><Clock className="w-3 h-3" /> 待赔偿 ¥{compensation.amount}</>
+                ) : (
+                  <><DollarSign className="w-3 h-3" /> 已赔偿 ¥{compensation.amount}</>
+                )}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

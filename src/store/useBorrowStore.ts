@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
@@ -9,6 +9,7 @@ interface BorrowState {
   currentHouseId: string;
 
   records: BorrowRecord[];
+  compensationRecords: CompensationRecord[];
   roommates: Roommate[];
   inventory: InventoryItem[];
   filter: FilterType;
@@ -29,9 +30,16 @@ interface BorrowState {
   setShowHouseModal: (show: boolean) => void;
 
   addRecord: (record: Omit<BorrowRecord, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'status'>) => void;
-  returnRecord: (id: string) => void;
+  returnRecord: (id: string, options?: { isDamaged?: boolean; damageDescription?: string; compensationAmount?: number }) => void;
   deleteRecord: (id: string) => void;
   updateRecord: (id: string, updates: Partial<BorrowRecord>) => void;
+
+  addCompensationRecord: (record: Omit<CompensationRecord, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+  updateCompensationStatus: (id: string, status: CompensationStatus) => void;
+  deleteCompensationRecord: (id: string) => void;
+  getCompensationByRecordId: (borrowRecordId: string) => CompensationRecord | undefined;
+  getCompensations: () => CompensationRecord[];
+  getPendingCompensations: () => CompensationRecord[];
 
   addRoommate: (roommate: Omit<Roommate, 'id' | 'houseId' | 'createdAt'>) => void;
   deleteRoommate: (id: string) => void;
@@ -90,6 +98,7 @@ export const useBorrowStore = create<BorrowState>()(
       currentHouseId: DEFAULT_HOUSE_ID,
 
       records: MOCK_RECORDS,
+      compensationRecords: [],
       roommates: MOCK_ROOMMATES,
       inventory: MOCK_INVENTORY,
       filter: 'all',
@@ -152,6 +161,7 @@ export const useBorrowStore = create<BorrowState>()(
           houses: newHouses,
           currentHouseId: newCurrentId,
           records: state.records.filter((r) => r.houseId !== houseId),
+          compensationRecords: state.compensationRecords.filter((r) => r.houseId !== houseId),
           roommates: state.roommates.filter((r) => r.houseId !== houseId),
           inventory: state.inventory.filter((i) => i.houseId !== houseId),
         }));
@@ -183,7 +193,7 @@ export const useBorrowStore = create<BorrowState>()(
         set((state) => ({ records: [newRecord, ...state.records] }));
       },
 
-      returnRecord: (id) => {
+      returnRecord: (id, options) => {
         const now = new Date().toISOString();
         const record = get().records.find((r) => r.id === id);
 
@@ -195,10 +205,30 @@ export const useBorrowStore = create<BorrowState>()(
         set((state) => ({
           records: state.records.map((r) =>
             r.id === id
-              ? { ...r, status: 'returned' as const, actualReturnDate: now, updatedAt: now }
+              ? {
+                  ...r,
+                  status: 'returned' as const,
+                  actualReturnDate: now,
+                  updatedAt: now,
+                  isDamaged: options?.isDamaged,
+                  damageDescription: options?.damageDescription,
+                }
               : r
           ),
         }));
+
+        if (options?.isDamaged && options?.compensationAmount && options.compensationAmount > 0 && record) {
+          get().addCompensationRecord({
+            borrowRecordId: id,
+            itemName: record.itemName,
+            itemEmoji: record.itemEmoji,
+            roommateId: record.roommateId,
+            roommateName: record.roommateName,
+            roommateAvatar: record.roommateAvatar,
+            damageDescription: options.damageDescription || '物品损坏',
+            amount: options.compensationAmount,
+          });
+        }
       },
 
       deleteRecord: (id) => {
@@ -221,6 +251,55 @@ export const useBorrowStore = create<BorrowState>()(
             r.id === id ? { ...r, ...updates, updatedAt: now } : r
           ),
         }));
+      },
+
+      addCompensationRecord: (record) => {
+        const now = new Date().toISOString();
+        const newRecord: CompensationRecord = {
+          ...record,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: 'pending',
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ compensationRecords: [newRecord, ...state.compensationRecords] }));
+      },
+
+      updateCompensationStatus: (id, status) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          compensationRecords: state.compensationRecords.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status,
+                  paidAt: status === 'paid' ? now : undefined,
+                  updatedAt: now,
+                }
+              : r
+          ),
+        }));
+      },
+
+      deleteCompensationRecord: (id) => {
+        set((state) => ({
+          compensationRecords: state.compensationRecords.filter((r) => r.id !== id),
+        }));
+      },
+
+      getCompensationByRecordId: (borrowRecordId) => {
+        return get().compensationRecords.find((r) => r.borrowRecordId === borrowRecordId);
+      },
+
+      getCompensations: () => {
+        const houseId = get().currentHouseId;
+        return get().compensationRecords.filter((r) => r.houseId === houseId);
+      },
+
+      getPendingCompensations: () => {
+        const houseId = get().currentHouseId;
+        return get().compensationRecords.filter((r) => r.houseId === houseId && r.status === 'pending');
       },
 
       addRoommate: (roommate) => {

@@ -2,6 +2,8 @@ export type BorrowType = 'lend' | 'borrow';
 
 export type BorrowStatus = 'active' | 'returned' | 'overdue';
 
+export type CompensationStatus = 'pending' | 'paid';
+
 export type FilterType = 'all' | 'lend' | 'borrow' | 'overdue';
 
 export type SortType = 'returnDate' | 'createdAt';
@@ -41,6 +43,25 @@ export interface BorrowRecord {
   actualReturnDate?: string;
   status: BorrowStatus;
   note?: string;
+  isDamaged?: boolean;
+  damageDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompensationRecord {
+  id: string;
+  houseId: string;
+  borrowRecordId: string;
+  itemName: string;
+  itemEmoji: string;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  damageDescription: string;
+  amount: number;
+  status: CompensationStatus;
+  paidAt?: string;
   createdAt: string;
   updatedAt: string;
 }

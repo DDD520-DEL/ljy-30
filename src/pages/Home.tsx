@@ -11,6 +11,7 @@ import { RoommateModal } from '@/components/RoommateModal';
 import { InventoryModal } from '@/components/InventoryModal';
 import { HouseModal } from '@/components/HouseModal';
 import { Celebration } from '@/components/Celebration';
+import { CompensationModal } from '@/components/CompensationModal';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
 import { useNotification } from '@/hooks/useNotification';
@@ -40,6 +41,8 @@ export default function Home() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<BorrowRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showCompensationModal, setShowCompensationModal] = useState(false);
+  const [compensationBorrowRecordId, setCompensationBorrowRecordId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,11 +72,17 @@ export default function Home() {
 
   const hasActiveFilters = searchQuery.trim() !== '' || selectedRoommateId !== null;
 
-  const handleReturn = (record: BorrowRecord) => {
-    returnRecord(record.id);
+  const handleReturn = (record: BorrowRecord, options?: { isDamaged?: boolean; damageDescription?: string; compensationAmount?: number }) => {
+    returnRecord(record.id, options);
     setCelebrate(true);
     setShowDetailModal(false);
     setSelectedRecord(null);
+  };
+
+  const handleOpenCompensation = (borrowRecordId: string) => {
+    setCompensationBorrowRecordId(borrowRecordId);
+    setShowCompensationModal(true);
+    setShowDetailModal(false);
   };
 
   const handleCardClick = (record: BorrowRecord) => {
@@ -252,7 +261,17 @@ export default function Home() {
           setShowDetailModal(false);
           setSelectedRecord(null);
         }}
-        onReturn={() => selectedRecord && handleReturn(selectedRecord)}
+        onReturn={(options) => selectedRecord && handleReturn(selectedRecord, options)}
+        onOpenCompensation={handleOpenCompensation}
+      />
+
+      <CompensationModal
+        borrowRecordId={compensationBorrowRecordId}
+        isOpen={showCompensationModal}
+        onClose={() => {
+          setShowCompensationModal(false);
+          setCompensationBorrowRecordId(null);
+        }}
       />
 
       <RoommateModal
