@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { COMMON_ITEMS, RETURN_TIME_OPTIONS } from '@/data/constants';
-import type { BorrowType, ItemOption, InventoryItem } from '@/types';
-import { X, Plus, ChevronDown, Package, AlertTriangle } from 'lucide-react';
+import type { BorrowType, ItemOption, InventoryItem, BorrowTemplate } from '@/types';
+import { X, Plus, ChevronDown, Package, AlertTriangle, Bookmark, BookmarkPlus, Pencil, Trash2, Check } from 'lucide-react';
 import { addDays } from '@/utils/date';
 
 interface AddRecordModalProps {
@@ -11,7 +11,17 @@ interface AddRecordModalProps {
 }
 
 export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
-  const { addRecord, roommates, inventory, currentHouseId } = useBorrowStore();
+  const {
+    addRecord,
+    roommates,
+    inventory,
+    currentHouseId,
+    templates,
+    addTemplate,
+    updateTemplate,
+    deleteTemplate,
+    getTemplates,
+  } = useBorrowStore();
 
   const currentRoommates = useMemo(
     () => roommates.filter((r) => r.houseId === currentHouseId),
@@ -21,6 +31,11 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
     () => inventory.filter((i) => i.houseId === currentHouseId),
     [inventory, currentHouseId]
   );
+  const currentTemplates = useMemo(
+    () => templates.filter((t) => t.houseId === currentHouseId),
+    [templates, currentHouseId]
+  );
+
   const [type, setType] = useState<BorrowType>('lend');
   const [itemName, setItemName] = useState('');
   const [itemEmoji, setItemEmoji] = useState('📦');
@@ -34,6 +49,11 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
   const [showItems, setShowItems] = useState(false);
   const [showRoommates, setShowRoommates] = useState(false);
   const [useInventoryItem, setUseInventoryItem] = useState(false);
+
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
@@ -50,6 +70,10 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
       setShowItems(false);
       setShowRoommates(false);
       setUseInventoryItem(false);
+      setShowSaveTemplate(false);
+      setTemplateName('');
+      setEditingTemplateId(null);
+      setShowTemplates(true);
     }
   }, [isOpen, currentRoommates]);
 
@@ -72,6 +96,103 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
 
   const selectedInventoryItem = itemId ? currentInventory.find((i) => i.id === itemId) : undefined;
   const canBorrow = selectedInventoryItem ? selectedInventoryItem.currentQuantity >= quantity : true;
+
+  const applyTemplate = (template: BorrowTemplate) => {
+    setType(template.type);
+    setItemName(template.itemName);
+    setItemEmoji(template.itemEmoji);
+    setItemId(template.itemId);
+    setQuantity(template.quantity || 1);
+    setRoommateId(template.roommateId);
+    setReturnDays(template.returnDays);
+    setUseCustomDate(false);
+    setCustomDate('');
+    setNote(template.note || '');
+    setUseInventoryItem(template.useInventoryItem);
+    setShowItems(false);
+    setShowRoommates(false);
+  };
+
+  const handleSaveAsTemplate = () => {
+    if (!templateName.trim() || !itemName.trim() || !roommateId) return;
+
+    const roommate = currentRoommates.find((r) => r.id === roommateId);
+    if (!roommate) return;
+
+    addTemplate({
+      name: templateName.trim(),
+      type,
+      itemName: itemName.trim(),
+      itemEmoji,
+      itemId: useInventoryItem ? itemId : undefined,
+      quantity: useInventoryItem ? quantity : undefined,
+      useInventoryItem,
+      roommateId,
+      roommateName: roommate.name,
+      roommateAvatar: roommate.avatar,
+      returnDays,
+      note: note.trim() || undefined,
+    });
+
+    setShowSaveTemplate(false);
+    setTemplateName('');
+  };
+
+  const handleStartEditTemplate = (template: BorrowTemplate) => {
+    setEditingTemplateId(template.id);
+    setTemplateName(template.name);
+    setType(template.type);
+    setItemName(template.itemName);
+    setItemEmoji(template.itemEmoji);
+    setItemId(template.itemId);
+    setQuantity(template.quantity || 1);
+    setRoommateId(template.roommateId);
+    setReturnDays(template.returnDays);
+    setNote(template.note || '');
+    setUseInventoryItem(template.useInventoryItem);
+    setShowSaveTemplate(true);
+  };
+
+  const handleSaveEditTemplate = () => {
+    if (!editingTemplateId || !templateName.trim() || !itemName.trim() || !roommateId) return;
+
+    const roommate = currentRoommates.find((r) => r.id === roommateId);
+    if (!roommate) return;
+
+    updateTemplate(editingTemplateId, {
+      name: templateName.trim(),
+      type,
+      itemName: itemName.trim(),
+      itemEmoji,
+      itemId: useInventoryItem ? itemId : undefined,
+      quantity: useInventoryItem ? quantity : undefined,
+      useInventoryItem,
+      roommateId,
+      roommateName: roommate.name,
+      roommateAvatar: roommate.avatar,
+      returnDays,
+      note: note.trim() || undefined,
+    });
+
+    setEditingTemplateId(null);
+    setShowSaveTemplate(false);
+    setTemplateName('');
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    deleteTemplate(id);
+    if (editingTemplateId === id) {
+      setEditingTemplateId(null);
+      setShowSaveTemplate(false);
+      setTemplateName('');
+    }
+  };
+
+  const handleCancelEditTemplate = () => {
+    setEditingTemplateId(null);
+    setShowSaveTemplate(false);
+    setTemplateName('');
+  };
 
   const handleSubmit = () => {
     if (!itemName.trim() || !roommateId) return;
@@ -124,6 +245,83 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
+
+        {currentTemplates.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-700"
+              >
+                <Bookmark className="w-4 h-4 text-primary-500" />
+                快捷模板
+                <span className="text-xs text-gray-400">({currentTemplates.length})</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 transition-transform ${showTemplates ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
+
+            {showTemplates && (
+              <div className="space-y-2">
+                {currentTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group"
+                  >
+                    <button
+                      onClick={() => applyTemplate(template)}
+                      className="flex-1 flex items-center gap-3 min-w-0"
+                    >
+                      <span className="text-2xl flex-shrink-0">{template.itemEmoji}</span>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 truncate">
+                            {template.name}
+                          </span>
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                              template.type === 'lend'
+                                ? 'bg-primary-100 text-primary-600'
+                                : 'bg-purple-100 text-purple-600'
+                            }`}
+                          >
+                            {template.type === 'lend' ? '借出' : '借入'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
+                          <span>{template.itemName}</span>
+                          <span>·</span>
+                          <span>{template.roommateAvatar} {template.roommateName}</span>
+                          <span>·</span>
+                          <span>{template.returnDays}天归还</span>
+                        </div>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleStartEditTemplate(template)}
+                        className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                        title="编辑模板"
+                      >
+                        <Pencil className="w-4 h-4 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                        title="删除模板"
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t border-gray-100 mt-4" />
+          </div>
+        )}
 
         <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl mb-6">
           <button
@@ -392,6 +590,55 @@ export function AddRecordModal({ isOpen, onClose }: AddRecordModalProps) {
               className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors resize-none text-sm"
             />
           </div>
+
+          {!showSaveTemplate ? (
+            <button
+              onClick={() => {
+                setShowSaveTemplate(true);
+                setEditingTemplateId(null);
+                if (!templateName.trim() && itemName.trim()) {
+                  setTemplateName(itemName.trim());
+                }
+              }}
+              className="w-full py-2.5 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl font-medium hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50 transition-all flex items-center justify-center gap-2"
+            >
+              <BookmarkPlus className="w-4 h-4" />
+              保存为模板
+            </button>
+          ) : (
+            <div className="p-4 bg-primary-50 rounded-xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-700">
+                  {editingTemplateId ? '编辑模板' : '保存为模板'}
+                </span>
+              </div>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="模板名称，如：每周借洗衣液"
+                className="w-full p-2.5 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none text-sm bg-white"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={editingTemplateId ? handleSaveEditTemplate : handleSaveAsTemplate}
+                  disabled={!templateName.trim() || !itemName.trim() || !roommateId}
+                  className="flex-1 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  {editingTemplateId ? '保存修改' : '保存模板'}
+                </button>
+                <button
+                  onClick={handleCancelEditTemplate}
+                  className="px-4 py-2.5 bg-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-300 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <button

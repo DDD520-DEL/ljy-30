@@ -102,3 +102,22 @@ export interface Comment {
   content: string;
   createdAt: string;
 }
+
+export interface BorrowTemplate {
+  id: string;
+  houseId: string;
+  name: string;
+  type: BorrowType;
+  itemName: string;
+  itemEmoji: string;
+  itemId?: string;
+  quantity?: number;
+  useInventoryItem: boolean;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  returnDays: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}

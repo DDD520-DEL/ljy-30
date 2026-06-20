@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
@@ -82,6 +82,12 @@ interface BorrowState {
   getDueReminders: () => BorrowRecord[];
 
   importRecords: (records: BorrowRecord[]) => { added: number; duplicates: number };
+
+  templates: BorrowTemplate[];
+  addTemplate: (template: Omit<BorrowTemplate, 'id' | 'houseId' | 'createdAt' | 'updatedAt'>) => void;
+  updateTemplate: (id: string, updates: Partial<Omit<BorrowTemplate, 'id' | 'houseId' | 'createdAt'>>) => void;
+  deleteTemplate: (id: string) => void;
+  getTemplates: () => BorrowTemplate[];
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -108,6 +114,7 @@ export const useBorrowStore = create<BorrowState>()(
       comments: [],
       roommates: MOCK_ROOMMATES,
       inventory: MOCK_INVENTORY,
+      templates: [],
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -172,6 +179,7 @@ export const useBorrowStore = create<BorrowState>()(
           comments: state.comments.filter((c) => c.houseId !== houseId),
           roommates: state.roommates.filter((r) => r.houseId !== houseId),
           inventory: state.inventory.filter((i) => i.houseId !== houseId),
+          templates: state.templates.filter((t) => t.houseId !== houseId),
         }));
       },
 
@@ -675,6 +683,38 @@ export const useBorrowStore = create<BorrowState>()(
         }
 
         return { added, duplicates };
+      },
+
+      addTemplate: (template) => {
+        const now = new Date().toISOString();
+        const newTemplate: BorrowTemplate = {
+          ...template,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ templates: [...state.templates, newTemplate] }));
+      },
+
+      updateTemplate: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          templates: state.templates.map((t) =>
+            t.id === id ? { ...t, ...updates, updatedAt: now } : t
+          ),
+        }));
+      },
+
+      deleteTemplate: (id) => {
+        set((state) => ({
+          templates: state.templates.filter((t) => t.id !== id),
+        }));
+      },
+
+      getTemplates: () => {
+        const houseId = get().currentHouseId;
+        return get().templates.filter((t) => t.houseId === houseId);
       },
     }),
     {
