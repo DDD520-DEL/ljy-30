@@ -98,24 +98,6 @@ export default function Statistics() {
           }
         }
       }
-
-      if (record.actualReturnDate) {
-        const returnDate = new Date(record.actualReturnDate);
-        if (
-          returnDate.getMonth() === currentMonth &&
-          returnDate.getFullYear() === currentYear
-        ) {
-          const dateStr = `${currentMonth + 1}/${returnDate.getDate()}`;
-          const existing = dailyData.get(dateStr);
-          if (existing) {
-            if (record.type === 'lend') {
-              existing.lend += 1;
-            } else {
-              existing.borrow += 1;
-            }
-          }
-        }
-      }
     });
 
     return Array.from(dailyData.values());
