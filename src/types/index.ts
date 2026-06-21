@@ -387,3 +387,29 @@ export interface ExpressFilterOption {
   label: string;
   emoji: string;
 }
+
+export type PhotoCategory = 'dining' | 'decoration' | 'daily' | 'party' | 'travel' | 'other';
+
+export interface Photo {
+  id: string;
+  houseId: string;
+  url: string;
+  thumbnailUrl: string;
+  title: string;
+  description?: string;
+  category: PhotoCategory;
+  uploaderId: string;
+  uploaderName: string;
+  uploaderAvatar: string;
+  likedBy: string[];
+  likeCount: number;
+  height: number;
+  width: number;
+  createdAt: string;
+}
+
+export interface PhotoFilterOption {
+  key: PhotoCategory | 'all';
+  label: string;
+  emoji: string;
+}

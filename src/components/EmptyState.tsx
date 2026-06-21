@@ -1,8 +1,8 @@
-import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES, BIRTHDAY_EMPTY_MESSAGES, EXPRESS_EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES, BIRTHDAY_EMPTY_MESSAGES, EXPRESS_EMPTY_MESSAGES, PHOTO_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed' | 'birthday' | 'anniversary' | 'express-all' | 'express-pending' | 'express-picked';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed' | 'birthday' | 'anniversary' | 'express-all' | 'express-pending' | 'express-picked' | 'photo-all' | 'photo-dining' | 'photo-decoration' | 'photo-daily' | 'photo-party' | 'photo-travel' | 'photo-other';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
@@ -46,6 +46,20 @@ export function EmptyState({ type = 'active' }: EmptyStateProps) {
       messages = EXPRESS_EMPTY_MESSAGES.pending;
     } else if (type === 'express-picked') {
       messages = EXPRESS_EMPTY_MESSAGES.picked;
+    } else if (type === 'photo-all') {
+      messages = PHOTO_EMPTY_MESSAGES.all;
+    } else if (type === 'photo-dining') {
+      messages = PHOTO_EMPTY_MESSAGES.dining;
+    } else if (type === 'photo-decoration') {
+      messages = PHOTO_EMPTY_MESSAGES.decoration;
+    } else if (type === 'photo-daily') {
+      messages = PHOTO_EMPTY_MESSAGES.daily;
+    } else if (type === 'photo-party') {
+      messages = PHOTO_EMPTY_MESSAGES.party;
+    } else if (type === 'photo-travel') {
+      messages = PHOTO_EMPTY_MESSAGES.travel;
+    } else if (type === 'photo-other') {
+      messages = PHOTO_EMPTY_MESSAGES.other;
     } else {
       messages = EMPTY_MESSAGES[type];
     }

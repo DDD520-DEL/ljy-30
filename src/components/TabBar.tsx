@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake, Package } from 'lucide-react';
+import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake, Package, Image } from 'lucide-react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 
 export function TabBar() {
@@ -100,6 +100,20 @@ export function TabBar() {
         >
           <Sparkles className="w-5 h-5 mb-1" />
           <span className="text-[11px] font-medium">心愿</span>
+        </NavLink>
+
+        <NavLink
+          to="/photos"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all flex-shrink-0 ${
+              isActive
+                ? 'text-pink-500 bg-pink-50'
+                : 'text-gray-400 hover:text-gray-600'
+            }`
+          }
+        >
+          <Image className="w-5 h-5 mb-1" />
+          <span className="text-[11px] font-medium">相册</span>
         </NavLink>
 
         <NavLink

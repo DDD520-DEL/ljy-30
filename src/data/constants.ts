@@ -1,4 +1,4 @@
-import type { ItemOption, BillCategoryOption, ChoreTaskOption, MaintenanceFilterOption, MaintenanceItemOption, ExpressFilterOption } from '@/types';
+import type { ItemOption, BillCategoryOption, ChoreTaskOption, MaintenanceFilterOption, MaintenanceItemOption, ExpressFilterOption, PhotoFilterOption } from '@/types';
 
 export const COMMON_ITEMS: ItemOption[] = [
   { name: '洗衣液', emoji: '🧴' },
@@ -291,5 +291,55 @@ export const EXPRESS_EMPTY_MESSAGES = {
   picked: [
     { emoji: '📭', text: '还没有已签收的快递' },
     { emoji: '🆕', text: '第一次签收记录等待诞生' },
+  ],
+};
+
+export const PHOTO_CATEGORIES: PhotoFilterOption[] = [
+  { key: 'all', label: '全部', emoji: '📸' },
+  { key: 'dining', label: '聚餐', emoji: '🍽️' },
+  { key: 'decoration', label: '布置', emoji: '🏡' },
+  { key: 'daily', label: '日常', emoji: '☀️' },
+  { key: 'party', label: '派对', emoji: '🎉' },
+  { key: 'travel', label: '出游', emoji: '✈️' },
+  { key: 'other', label: '其他', emoji: '📷' },
+];
+
+export const PHOTO_CATEGORY_OPTIONS: { key: PhotoFilterOption['key']; label: string; emoji: string }[] = [
+  { key: 'dining', label: '聚餐美食', emoji: '🍽️' },
+  { key: 'decoration', label: '公共区域布置', emoji: '🏡' },
+  { key: 'daily', label: '日常生活', emoji: '☀️' },
+  { key: 'party', label: '聚会派对', emoji: '🎉' },
+  { key: 'travel', label: '一起出游', emoji: '✈️' },
+  { key: 'other', label: '其他精彩', emoji: '📷' },
+];
+
+export const PHOTO_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '📸', text: '还没有照片，快来上传第一张吧~' },
+    { emoji: '🏠', text: '记录合租生活的美好瞬间' },
+  ],
+  dining: [
+    { emoji: '🍽️', text: '还没有聚餐的照片哦' },
+    { emoji: '🍕', text: '下次聚餐记得拍张照~' },
+  ],
+  decoration: [
+    { emoji: '🏡', text: '还没有布置的照片' },
+    { emoji: '🎨', text: '一起装饰我们的小窝吧' },
+  ],
+  daily: [
+    { emoji: '☀️', text: '还没有日常照片' },
+    { emoji: '📷', text: '记录生活中的小美好' },
+  ],
+  party: [
+    { emoji: '🎉', text: '还没有派对照片' },
+    { emoji: '🥳', text: '开派对的时候记得拍照呀' },
+  ],
+  travel: [
+    { emoji: '✈️', text: '还没有出游的照片' },
+    { emoji: '🗺️', text: '一起出去玩吧~' },
+  ],
+  other: [
+    { emoji: '📷', text: '还没有其他类型的照片' },
+    { emoji: '✨', text: '随时记录精彩瞬间' },
   ],
 };

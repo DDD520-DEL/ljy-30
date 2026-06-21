@@ -8,6 +8,7 @@ import Voting from "@/pages/Voting";
 import Maintenance from "@/pages/Maintenance";
 import Birthdays from "@/pages/Birthdays";
 import Express from "@/pages/Express";
+import PhotoAlbum from "@/pages/PhotoAlbum";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/birthdays" element={<Birthdays />} />
         <Route path="/express" element={<Express />} />
+        <Route path="/photos" element={<PhotoAlbum />} />
       </Routes>
     </Router>
   );

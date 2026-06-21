@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus, ReservationEntry, ReservationStatus, ExpressRecord, ExpressStatus } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus, ReservationEntry, ReservationStatus, ExpressRecord, ExpressStatus, Photo, PhotoCategory } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS, MOCK_PHOTOS } from '@/data/mockData';
 import { isOverdue, isToday, isBirthdayToday, isMoveInAnniversaryToday, getDaysUntilBirthday, getDaysUntilMoveInAnniversary, getMonthBirthdays, getMonthMoveInAnniversaries } from '@/utils/date';
 
 interface BorrowState {
@@ -256,6 +256,23 @@ interface BorrowState {
       getPendingExpressCount: () => number;
       getPendingExpressByRecipient: (recipientId: string) => ExpressRecord[];
       getExpressStats: () => { total: number; pending: number; picked: number };
+
+      photos: Photo[];
+      showAddPhotoModal: boolean;
+      selectedPhoto: Photo | null;
+      photoFilter: PhotoCategory | 'all';
+
+      setShowAddPhotoModal: (show: boolean) => void;
+      setSelectedPhoto: (photo: Photo | null) => void;
+      setPhotoFilter: (filter: PhotoCategory | 'all') => void;
+
+      addPhoto: (photo: Omit<Photo, 'id' | 'houseId' | 'likedBy' | 'likeCount' | 'createdAt'>) => void;
+      deletePhoto: (id: string) => void;
+      togglePhotoLike: (photoId: string, roommateId: string) => void;
+
+      getPhotos: () => Photo[];
+      getPhotosByCategory: (category: PhotoCategory | 'all') => Photo[];
+      getPhotoStats: () => { total: number; totalLikes: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -318,6 +335,10 @@ export const useBorrowStore = create<BorrowState>()(
       showExpressDetailModal: false,
       selectedExpress: null,
       expressFilter: 'all',
+      photos: MOCK_PHOTOS,
+      showAddPhotoModal: false,
+      selectedPhoto: null,
+      photoFilter: 'all',
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -398,6 +419,7 @@ export const useBorrowStore = create<BorrowState>()(
           maintenanceRecords: state.maintenanceRecords.filter((r) => r.houseId !== houseId),
           reservations: state.reservations.filter((r) => r.houseId !== houseId),
           expressRecords: state.expressRecords.filter((r) => r.houseId !== houseId),
+          photos: state.photos.filter((p) => p.houseId !== houseId),
         }));
       },
 
@@ -2109,6 +2131,72 @@ export const useBorrowStore = create<BorrowState>()(
           total: records.length,
           pending: records.filter((r) => r.status === 'pending').length,
           picked: records.filter((r) => r.status === 'picked').length,
+        };
+      },
+
+      setShowAddPhotoModal: (show) => set({ showAddPhotoModal: show }),
+      setSelectedPhoto: (photo) => set({ selectedPhoto: photo }),
+      setPhotoFilter: (filter) => set({ photoFilter: filter }),
+
+      addPhoto: (photo) => {
+        const now = new Date().toISOString();
+        const newPhoto: Photo = {
+          ...photo,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          likedBy: [],
+          likeCount: 0,
+          createdAt: now,
+        };
+        set((state) => ({ photos: [newPhoto, ...state.photos] }));
+      },
+
+      deletePhoto: (id) => {
+        set((state) => ({
+          photos: state.photos.filter((p) => p.id !== id),
+        }));
+      },
+
+      togglePhotoLike: (photoId, roommateId) => {
+        set((state) => ({
+          photos: state.photos.map((p) => {
+            if (p.id !== photoId) return p;
+            const isLiked = p.likedBy.includes(roommateId);
+            const newLikedBy = isLiked
+              ? p.likedBy.filter((id) => id !== roommateId)
+              : [...p.likedBy, roommateId];
+            return {
+              ...p,
+              likedBy: newLikedBy,
+              likeCount: newLikedBy.length,
+            };
+          }),
+        }));
+      },
+
+      getPhotos: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .photos.filter((p) => p.houseId === houseId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getPhotosByCategory: (category) => {
+        const houseId = get().currentHouseId;
+        let filtered = get().photos.filter((p) => p.houseId === houseId);
+        if (category !== 'all') {
+          filtered = filtered.filter((p) => p.category === category);
+        }
+        return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getPhotoStats: () => {
+        const houseId = get().currentHouseId;
+        const photos = get().photos.filter((p) => p.houseId === houseId);
+        const totalLikes = photos.reduce((sum, p) => sum + p.likeCount, 0);
+        return {
+          total: photos.length,
+          totalLikes,
         };
       },
     }),
