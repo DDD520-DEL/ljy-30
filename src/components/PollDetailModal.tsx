@@ -16,8 +16,7 @@ export function PollDetailModal({ isOpen, onClose }: PollDetailModalProps) {
     currentHouseId,
     announcementRoommateId,
     setAnnouncementRoommateId,
-    getVotesByPollId,
-    getVoteByPollAndRoommate,
+    pollVotes,
     votePoll,
     cancelVote,
     endPoll,
@@ -55,16 +54,16 @@ export function PollDetailModal({ isOpen, onClose }: PollDetailModalProps) {
   }, [currentRoommates, announcementRoommateId, setAnnouncementRoommateId]);
 
   const votes = useMemo(
-    () => (selectedPoll ? getVotesByPollId(selectedPoll.id) : []),
-    [selectedPoll, getVotesByPollId]
+    () => (selectedPoll ? pollVotes.filter((v) => v.pollId === selectedPoll.id) : []),
+    [selectedPoll, pollVotes]
   );
 
   const myVote = useMemo(
     () =>
       selectedPoll && resolvedRoommateId
-        ? getVoteByPollAndRoommate(selectedPoll.id, resolvedRoommateId)
+        ? votes.find((v) => v.roommateId === resolvedRoommateId)
         : undefined,
-    [selectedPoll, resolvedRoommateId, getVoteByPollAndRoommate]
+    [selectedPoll, resolvedRoommateId, votes]
   );
 
   const optionVoteCounts = useMemo(() => {

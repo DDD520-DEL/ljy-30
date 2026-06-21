@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { PollCard } from '@/components/PollCard';
 import { EmptyState } from '@/components/EmptyState';
@@ -18,14 +18,44 @@ export default function Voting() {
     setShowCreatePollModal,
     showPollDetailModal,
     setShowPollDetailModal,
-    getPollsByStatus,
-    getPollStats,
     setShowHouseModal,
     setShowRoommateModal,
+    polls: allPolls,
+    currentHouseId,
+    checkPollsEnded,
   } = useBorrowStore();
 
-  const polls = useMemo(() => getPollsByStatus(pollFilter), [pollFilter, getPollsByStatus]);
-  const stats = getPollStats();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    checkPollsEnded();
+    const timer = setInterval(() => {
+      checkPollsEnded();
+      setTick((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [checkPollsEnded]);
+
+  const housePolls = useMemo(() => {
+    return allPolls
+      .filter((p) => p.houseId === currentHouseId)
+      .sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [allPolls, currentHouseId]);
+
+  const polls = useMemo(() => {
+    if (pollFilter === 'all') return housePolls;
+    return housePolls.filter((p) => p.status === pollFilter);
+  }, [housePolls, pollFilter]);
+
+  const stats = useMemo(() => ({
+    total: housePolls.length,
+    active: housePolls.filter((p) => p.status === 'active').length,
+    ended: housePolls.filter((p) => p.status === 'ended').length,
+    archived: housePolls.filter((p) => p.status === 'archived').length,
+  }), [housePolls]);
 
   const getEmptyType = () => {
     switch (pollFilter) {
@@ -41,11 +71,10 @@ export default function Voting() {
   };
 
   const participationRate = useMemo(() => {
-    const allPolls = getPollsByStatus('all');
-    if (allPolls.length === 0) return 0;
-    const totalEnded = allPolls.filter((p) => p.status !== 'active').length;
-    return totalEnded > 0 ? Math.round((totalEnded / allPolls.length) * 100) : 0;
-  }, [getPollsByStatus]);
+    if (housePolls.length === 0) return 0;
+    const totalEnded = housePolls.filter((p) => p.status !== 'active').length;
+    return totalEnded > 0 ? Math.round((totalEnded / housePolls.length) * 100) : 0;
+  }, [housePolls]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">

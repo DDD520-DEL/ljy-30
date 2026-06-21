@@ -13,11 +13,10 @@ export function PollCard({ poll }: PollCardProps) {
     roommates,
     currentHouseId,
     announcementRoommateId,
-    getVotesByPollId,
+    pollVotes,
     setSelectedPoll,
     setShowPollDetailModal,
     votePoll,
-    getVoteByPollAndRoommate,
   } = useBorrowStore();
 
   const [, setNow] = useState(new Date());
@@ -39,10 +38,10 @@ export function PollCard({ poll }: PollCardProps) {
     return currentRoommates[0]?.id || '';
   }, [announcementRoommateId, currentRoommates]);
 
-  const votes = useMemo(() => getVotesByPollId(poll.id), [poll.id, getVotesByPollId]);
+  const votes = useMemo(() => pollVotes.filter((v) => v.pollId === poll.id), [poll.id, pollVotes]);
   const myVote = useMemo(
-    () => (resolvedRoommateId ? getVoteByPollAndRoommate(poll.id, resolvedRoommateId) : undefined),
-    [poll.id, resolvedRoommateId, getVoteByPollAndRoommate]
+    () => (resolvedRoommateId ? votes.find((v) => v.roommateId === resolvedRoommateId) : undefined),
+    [votes, resolvedRoommateId]
   );
 
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>(myVote?.optionIds || []);
