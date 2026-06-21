@@ -150,11 +150,11 @@ export function ReservationQueueSection({ record }: ReservationQueueSectionProps
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {getStatusBadge(entry.status)}
-                {entry.status === 'waiting' && (
+                {entry.status !== 'cancelled' && (
                   <button
                     onClick={() => handleCancelReservation(entry.id)}
                     className="p-1 hover:bg-red-50 rounded-full transition-colors"
-                    title="取消排队"
+                    title="退出队伍"
                   >
                     <X className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
                   </button>

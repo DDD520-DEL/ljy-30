@@ -452,6 +452,7 @@ export const useBorrowStore = create<BorrowState>()(
         set((state) => ({
           records: state.records.filter((r) => r.id !== id),
           comments: state.comments.filter((c) => c.recordId !== id),
+          reservations: state.reservations.filter((r) => r.recordId !== id),
         }));
       },
 
@@ -1851,7 +1852,7 @@ export const useBorrowStore = create<BorrowState>()(
         const now = new Date().toISOString();
         set((state) => {
           const entry = state.reservations.find((r) => r.id === entryId);
-          if (!entry || entry.status !== 'waiting') return state;
+          if (!entry || entry.status === 'cancelled') return state;
 
           const updated = state.reservations.map((r) =>
             r.id === entryId
