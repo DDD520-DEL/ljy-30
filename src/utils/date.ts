@@ -80,3 +80,46 @@ export function formatCommentTime(dateStr: string): string {
   }
   return formatDateShort(dateStr);
 }
+
+export function formatCountdown(targetDateStr: string): { text: string; isUrgent: boolean; isEnded: boolean } {
+  const target = new Date(targetDateStr);
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return { text: '已结束', isUrgent: false, isEnded: true };
+  }
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  const isUrgent = diffHour < 1;
+
+  if (diffDay >= 1) {
+    const hours = diffHour % 24;
+    return hours > 0
+      ? { text: `${diffDay}天${hours}小时`, isUrgent, isEnded: false }
+      : { text: `${diffDay}天`, isUrgent, isEnded: false };
+  }
+  if (diffHour >= 1) {
+    const mins = diffMin % 60;
+    return mins > 0
+      ? { text: `${diffHour}小时${mins}分`, isUrgent, isEnded: false }
+      : { text: `${diffHour}小时`, isUrgent, isEnded: false };
+  }
+  if (diffMin >= 1) {
+    return { text: `${diffMin}分钟`, isUrgent, isEnded: false };
+  }
+  return { text: `${diffSec}秒`, isUrgent: true, isEnded: false };
+}
+
+export function formatDateTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${month}月${day}日 ${hours}:${minutes}`;
+}

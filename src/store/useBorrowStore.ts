@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
@@ -169,6 +169,32 @@ interface BorrowState {
   getWishesByStatus: (status: WishStatus | 'all') => Wish[];
   getActiveWishes: () => Wish[];
   getWishStats: () => { total: number; active: number; fulfilled: number; archived: number };
+
+  polls: Poll[];
+  pollVotes: PollVote[];
+  showCreatePollModal: boolean;
+  showPollDetailModal: boolean;
+  selectedPoll: Poll | null;
+  pollFilter: PollStatus | 'all';
+  pollRoommateId: string | null;
+  setShowCreatePollModal: (show: boolean) => void;
+  setShowPollDetailModal: (show: boolean) => void;
+  setSelectedPoll: (poll: Poll | null) => void;
+  setPollFilter: (filter: PollStatus | 'all') => void;
+  setPollRoommateId: (id: string | null) => void;
+  addPoll: (poll: Omit<Poll, 'id' | 'houseId' | 'status' | 'createdAt' | 'updatedAt'>) => void;
+  updatePoll: (id: string, updates: Partial<Poll>) => void;
+  deletePoll: (id: string) => void;
+  votePoll: (pollId: string, optionIds: string[], roommateId: string, roommateName: string, roommateAvatar: string) => boolean;
+  cancelVote: (pollId: string, roommateId: string) => void;
+  endPoll: (id: string) => void;
+  archivePoll: (id: string) => void;
+  checkPollsEnded: () => void;
+  getPolls: () => Poll[];
+  getPollsByStatus: (status: PollStatus | 'all') => Poll[];
+  getVotesByPollId: (pollId: string) => PollVote[];
+  getVoteByPollAndRoommate: (pollId: string, roommateId: string) => PollVote | undefined;
+  getPollStats: () => { total: number; active: number; ended: number; archived: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -213,6 +239,13 @@ export const useBorrowStore = create<BorrowState>()(
       showWishDetailModal: false,
       selectedWish: null,
       wishFilter: 'all',
+      polls: MOCK_POLLS,
+      pollVotes: MOCK_POLL_VOTES,
+      showCreatePollModal: false,
+      showPollDetailModal: false,
+      selectedPoll: null,
+      pollFilter: 'all',
+      pollRoommateId: null,
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -285,6 +318,11 @@ export const useBorrowStore = create<BorrowState>()(
           choreRotations: state.choreRotations.filter((r) => r.houseId !== houseId),
           announcements: state.announcements.filter((a) => a.houseId !== houseId),
           wishes: state.wishes.filter((w) => w.houseId !== houseId),
+          polls: state.polls.filter((p) => p.houseId !== houseId),
+          pollVotes: state.pollVotes.filter((v) => {
+            const poll = state.polls.find((p) => p.id === v.pollId);
+            return poll && poll.houseId === houseId ? false : true;
+          }),
         }));
       },
 
@@ -1401,6 +1439,161 @@ export const useBorrowStore = create<BorrowState>()(
           active: wishes.filter((w) => w.status === 'active').length,
           fulfilled: wishes.filter((w) => w.status === 'fulfilled').length,
           archived: wishes.filter((w) => w.status === 'archived').length,
+        };
+      },
+
+      setShowCreatePollModal: (show) => set({ showCreatePollModal: show }),
+
+      setShowPollDetailModal: (show) => set({ showPollDetailModal: show }),
+
+      setSelectedPoll: (poll) => set({ selectedPoll: poll }),
+
+      setPollFilter: (filter) => set({ pollFilter: filter }),
+
+      setPollRoommateId: (id) => set({ pollRoommateId: id }),
+
+      addPoll: (poll) => {
+        const now = new Date().toISOString();
+        const newPoll: Poll = {
+          ...poll,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ polls: [newPoll, ...state.polls] }));
+      },
+
+      updatePoll: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          polls: state.polls.map((p) =>
+            p.id === id ? { ...p, ...updates, updatedAt: now } : p
+          ),
+        }));
+      },
+
+      deletePoll: (id) => {
+        set((state) => ({
+          polls: state.polls.filter((p) => p.id !== id),
+          pollVotes: state.pollVotes.filter((v) => v.pollId !== id),
+        }));
+      },
+
+      votePoll: (pollId, optionIds, roommateId, roommateName, roommateAvatar) => {
+        const poll = get().polls.find((p) => p.id === pollId);
+        if (!poll || poll.status !== 'active') return false;
+        if (new Date(poll.endAt) < new Date()) return false;
+
+        const now = new Date().toISOString();
+        set((state) => {
+          const existingVoteIndex = state.pollVotes.findIndex(
+            (v) => v.pollId === pollId && v.roommateId === roommateId
+          );
+          const newVotes = [...state.pollVotes];
+          const newVote: PollVote = {
+            id: generateId(),
+            pollId,
+            optionIds,
+            roommateId,
+            roommateName,
+            roommateAvatar,
+            createdAt: now,
+          };
+          if (existingVoteIndex !== -1) {
+            newVotes[existingVoteIndex] = newVote;
+          } else {
+            newVotes.push(newVote);
+          }
+          return { pollVotes: newVotes };
+        });
+        return true;
+      },
+
+      cancelVote: (pollId, roommateId) => {
+        set((state) => ({
+          pollVotes: state.pollVotes.filter(
+            (v) => !(v.pollId === pollId && v.roommateId === roommateId)
+          ),
+        }));
+      },
+
+      endPoll: (id) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          polls: state.polls.map((p) =>
+            p.id === id ? { ...p, status: 'ended', updatedAt: now } : p
+          ),
+        }));
+      },
+
+      archivePoll: (id) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          polls: state.polls.map((p) =>
+            p.id === id ? { ...p, status: 'archived', updatedAt: now } : p
+          ),
+        }));
+      },
+
+      checkPollsEnded: () => {
+        const houseId = get().currentHouseId;
+        const now = new Date();
+        set((state) => ({
+          polls: state.polls.map((p) => {
+            if (
+              p.houseId === houseId &&
+              p.status === 'active' &&
+              new Date(p.endAt) < now
+            ) {
+              return { ...p, status: 'ended', updatedAt: now.toISOString() };
+            }
+            return p;
+          }),
+        }));
+      },
+
+      getPolls: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .polls.filter((p) => p.houseId === houseId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getPollsByStatus: (status) => {
+        const houseId = get().currentHouseId;
+        get().checkPollsEnded();
+        let filtered = get().polls.filter((p) => p.houseId === houseId);
+        if (status !== 'all') {
+          filtered = filtered.filter((p) => p.status === status);
+        }
+        return filtered.sort((a, b) => {
+          if (a.status === 'active' && b.status !== 'active') return -1;
+          if (a.status !== 'active' && b.status === 'active') return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      },
+
+      getVotesByPollId: (pollId) => {
+        return get().pollVotes.filter((v) => v.pollId === pollId);
+      },
+
+      getVoteByPollAndRoommate: (pollId, roommateId) => {
+        return get().pollVotes.find(
+          (v) => v.pollId === pollId && v.roommateId === roommateId
+        );
+      },
+
+      getPollStats: () => {
+        const houseId = get().currentHouseId;
+        get().checkPollsEnded();
+        const polls = get().polls.filter((p) => p.houseId === houseId);
+        return {
+          total: polls.length,
+          active: polls.filter((p) => p.status === 'active').length,
+          ended: polls.filter((p) => p.status === 'ended').length,
+          archived: polls.filter((p) => p.status === 'archived').length,
         };
       },
     }),

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3, Wallet, Calendar, Sparkles } from 'lucide-react';
+import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote } from 'lucide-react';
 
 export function TabBar() {
   return (
@@ -9,7 +9,7 @@ export function TabBar() {
           to="/"
           end
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-primary-500 bg-primary-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -17,13 +17,27 @@ export function TabBar() {
           }
         >
           <Home className="w-5 h-5 mb-1" />
-          <span className="text-xs font-medium">首页</span>
+          <span className="text-[11px] font-medium">首页</span>
+        </NavLink>
+
+        <NavLink
+          to="/voting"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
+              isActive
+                ? 'text-info-500 bg-info-50'
+                : 'text-gray-400 hover:text-gray-600'
+            }`
+          }
+        >
+          <Vote className="w-5 h-5 mb-1" />
+          <span className="text-[11px] font-medium">投票</span>
         </NavLink>
 
         <NavLink
           to="/wishes"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-warning-500 bg-warning-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -31,13 +45,13 @@ export function TabBar() {
           }
         >
           <Sparkles className="w-5 h-5 mb-1" />
-          <span className="text-xs font-medium">心愿</span>
+          <span className="text-[11px] font-medium">心愿</span>
         </NavLink>
 
         <NavLink
           to="/chores"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-success-500 bg-success-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -45,13 +59,13 @@ export function TabBar() {
           }
         >
           <Calendar className="w-5 h-5 mb-1" />
-          <span className="text-xs font-medium">排班</span>
+          <span className="text-[11px] font-medium">排班</span>
         </NavLink>
 
         <NavLink
           to="/bills"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-warning-500 bg-warning-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -59,13 +73,13 @@ export function TabBar() {
           }
         >
           <Wallet className="w-5 h-5 mb-1" />
-          <span className="text-xs font-medium">账单</span>
+          <span className="text-[11px] font-medium">账单</span>
         </NavLink>
 
         <NavLink
           to="/statistics"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-2 px-2 rounded-xl transition-all ${
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all ${
               isActive
                 ? 'text-primary-500 bg-primary-50'
                 : 'text-gray-400 hover:text-gray-600'
@@ -73,7 +87,7 @@ export function TabBar() {
           }
         >
           <BarChart3 className="w-5 h-5 mb-1" />
-          <span className="text-xs font-medium">统计</span>
+          <span className="text-[11px] font-medium">统计</span>
         </NavLink>
       </div>
     </div>

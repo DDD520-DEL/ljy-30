@@ -166,3 +166,55 @@ export const WISH_EMPTY_MESSAGES = {
     { emoji: '🪶', text: '还没有已完成归档的心愿' },
   ],
 };
+
+export const POLL_EMOJIS = [
+  '🗳️', '🐱', '🐶', '⚡', '❄️', '🔥', '🎉', '🍕',
+  '🎮', '📺', '🎵', '📚', '🏠', '🌙', '☀️', '🌿',
+  '🍿', '☕', '🧹', '🛋️', '🚿', '🚪', '💡', '🔔',
+  '🎯', '💬', '🤝', '🧊', '🌡️', '🐾', '🪴', '✨',
+];
+
+export const POLL_END_TIME_OPTIONS = [
+  { label: '1小时后', hours: 1 },
+  { label: '3小时后', hours: 3 },
+  { label: '6小时后', hours: 6 },
+  { label: '12小时后', hours: 12 },
+  { label: '1天后', hours: 24 },
+  { label: '2天后', hours: 48 },
+  { label: '3天后', hours: 72 },
+  { label: '1周后', hours: 168 },
+];
+
+export const POLL_FILTER_OPTIONS = [
+  { key: 'all' as const, label: '全部', emoji: '📋' },
+  { key: 'active' as const, label: '进行中', emoji: '🗳️' },
+  { key: 'ended' as const, label: '已结束', emoji: '✅' },
+  { key: 'archived' as const, label: '已归档', emoji: '📦' },
+];
+
+export const POLL_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '🗳️', text: '还没有投票，快来发起第一个吧~' },
+    { emoji: '🤔', text: '大家还没开始讨论事务呢' },
+  ],
+  active: [
+    { emoji: '🎉', text: '太棒了！没有进行中的投票' },
+    { emoji: '💤', text: '当前没有需要大家决策的事情' },
+  ],
+  ended: [
+    { emoji: '📭', text: '还没有已结束的投票' },
+    { emoji: '⏳', text: '耐心等待投票结束吧~' },
+  ],
+  archived: [
+    { emoji: '📦', text: '归档区空空如也' },
+    { emoji: '🪶', text: '还没有已归档的投票' },
+  ],
+};
+
+export const POLL_PRESET_TOPICS = [
+  { title: '要不要养猫？', emoji: '🐱', options: ['同意养猫', '不同意', '先养只试试'] },
+  { title: '夏天空调开多少度？', emoji: '🌡️', options: ['24度', '25度', '26度', '27度'] },
+  { title: '周末一起聚餐吗？', emoji: '🍕', options: ['好呀！', '没空', '看情况'] },
+  { title: '公共区域多久打扫一次？', emoji: '🧹', options: ['每天', '每周2次', '每周1次', '脏了再扫'] },
+  { title: '要不要装路由器？', emoji: '📶', options: ['同意', '不同意', '用各自的就行'] },
+];

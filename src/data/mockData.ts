@@ -1,4 +1,4 @@
-import type { House, Roommate, BorrowRecord, InventoryItem, ChoreTask, ChoreAssignment, ChoreRotation, Announcement, Wish } from '@/types';
+import type { House, Roommate, BorrowRecord, InventoryItem, ChoreTask, ChoreAssignment, ChoreRotation, Announcement, Wish, Poll, PollVote } from '@/types';
 
 const now = new Date();
 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -724,4 +724,118 @@ export const MOCK_WISHES: Wish[] = [
     createdAt: oneDayAgo.toISOString(),
     updatedAt: oneDayAgo.toISOString(),
   },
+];
+
+const threeHoursLater = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+const twelveHoursLater = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
+export const MOCK_POLLS: Poll[] = [
+  {
+    id: 'p1',
+    houseId: 'h1',
+    title: '要不要养猫？',
+    description: '最近有朋友送一只小奶猫，大家看看要不要一起养？需要有人负责喂食、铲屎、打扫卫生哦~',
+    emoji: '🐱',
+    type: 'single',
+    visibility: 'public',
+    options: [
+      { id: 'o1', text: '同意养猫！我来照顾', emoji: '😺' },
+      { id: 'o2', text: '同意但我比较忙', emoji: '🤔' },
+      { id: 'o3', text: '不同意养猫', emoji: '😿' },
+      { id: 'o4', text: '先养一周试试', emoji: '🙀' },
+    ],
+    creatorId: 'r1',
+    creatorName: '小明',
+    creatorAvatar: '🐱',
+    status: 'active',
+    endAt: twelveHoursLater.toISOString(),
+    createdAt: twoHoursAgo.toISOString(),
+    updatedAt: twoHoursAgo.toISOString(),
+  },
+  {
+    id: 'p2',
+    houseId: 'h1',
+    title: '夏天空调开多少度？',
+    description: '最近天气越来越热了，大家投票决定一下客厅空调平时开多少度比较合适～',
+    emoji: '🌡️',
+    type: 'single',
+    visibility: 'anonymous',
+    options: [
+      { id: 'o5', text: '24度（凉爽）' },
+      { id: 'o6', text: '25度（舒适）' },
+      { id: 'o7', text: '26度（省电）' },
+      { id: 'o8', text: '27度及以上' },
+    ],
+    creatorId: 'r2',
+    creatorName: '小红',
+    creatorAvatar: '🐰',
+    status: 'active',
+    endAt: threeHoursLater.toISOString(),
+    createdAt: oneDayAgo.toISOString(),
+    updatedAt: oneDayAgo.toISOString(),
+  },
+  {
+    id: 'p3',
+    houseId: 'h1',
+    title: '周末聚餐想吃什么？',
+    description: '这周六晚大家一起聚餐吧！可以选多个想吃的类型，最后综合决定～',
+    emoji: '🍕',
+    type: 'multiple',
+    visibility: 'public',
+    options: [
+      { id: 'o9', text: '火锅', emoji: '🍲' },
+      { id: 'o10', text: '烧烤', emoji: '🍖' },
+      { id: 'o11', text: '寿司', emoji: '🍣' },
+      { id: 'o12', text: '披萨', emoji: '🍕' },
+      { id: 'o13', text: '自己做饭', emoji: '👨‍🍳' },
+    ],
+    creatorId: 'r3',
+    creatorName: '大壮',
+    creatorAvatar: '🐻',
+    status: 'ended',
+    endAt: sixHoursAgo.toISOString(),
+    createdAt: twoDaysAgo.toISOString(),
+    updatedAt: sixHoursAgo.toISOString(),
+  },
+  {
+    id: 'p4',
+    houseId: 'h1',
+    title: '公共区域卫生排班',
+    description: '关于公共区域（客厅、厨房、卫生间）的打扫频率，大家觉得哪种方案比较合理？',
+    emoji: '🧹',
+    type: 'single',
+    visibility: 'public',
+    options: [
+      { id: 'o14', text: '每人每周固定一天' },
+      { id: 'o15', text: '周末一起大扫除' },
+      { id: 'o16', text: '轮流值日制' },
+      { id: 'o17', text: '脏了就谁看到谁打扫' },
+    ],
+    creatorId: 'r4',
+    creatorName: '阿花',
+    creatorAvatar: '🦊',
+    status: 'archived',
+    endAt: threeDaysAgo.toISOString(),
+    createdAt: threeDaysAgo.toISOString(),
+    updatedAt: twoDaysAgo.toISOString(),
+  },
+];
+
+export const MOCK_POLL_VOTES: PollVote[] = [
+  { id: 'pv1', pollId: 'p1', optionIds: ['o1'], roommateId: 'r2', roommateName: '小红', roommateAvatar: '🐰', createdAt: twoHoursAgo.toISOString() },
+  { id: 'pv2', pollId: 'p1', optionIds: ['o2'], roommateId: 'r3', roommateName: '大壮', roommateAvatar: '🐻', createdAt: twoHoursAgo.toISOString() },
+  { id: 'pv3', pollId: 'p1', optionIds: ['o4'], roommateId: 'r4', roommateName: '阿花', roommateAvatar: '🦊', createdAt: twoHoursAgo.toISOString() },
+  { id: 'pv4', pollId: 'p2', optionIds: ['o6'], roommateId: 'r1', roommateName: '小明', roommateAvatar: '🐱', createdAt: oneDayAgo.toISOString() },
+  { id: 'pv5', pollId: 'p2', optionIds: ['o7'], roommateId: 'r3', roommateName: '大壮', roommateAvatar: '🐻', createdAt: oneDayAgo.toISOString() },
+  { id: 'pv6', pollId: 'p2', optionIds: ['o6'], roommateId: 'r4', roommateName: '阿花', roommateAvatar: '🦊', createdAt: oneDayAgo.toISOString() },
+  { id: 'pv7', pollId: 'p3', optionIds: ['o9', 'o10'], roommateId: 'r1', roommateName: '小明', roommateAvatar: '🐱', createdAt: twoDaysAgo.toISOString() },
+  { id: 'pv8', pollId: 'p3', optionIds: ['o9', 'o12'], roommateId: 'r2', roommateName: '小红', roommateAvatar: '🐰', createdAt: twoDaysAgo.toISOString() },
+  { id: 'pv9', pollId: 'p3', optionIds: ['o10', 'o11', 'o13'], roommateId: 'r3', roommateName: '大壮', roommateAvatar: '🐻', createdAt: twoDaysAgo.toISOString() },
+  { id: 'pv10', pollId: 'p3', optionIds: ['o9', 'o13'], roommateId: 'r4', roommateName: '阿花', roommateAvatar: '🦊', createdAt: twoDaysAgo.toISOString() },
+  { id: 'pv11', pollId: 'p4', optionIds: ['o14'], roommateId: 'r1', roommateName: '小明', roommateAvatar: '🐱', createdAt: threeDaysAgo.toISOString() },
+  { id: 'pv12', pollId: 'p4', optionIds: ['o16'], roommateId: 'r2', roommateName: '小红', roommateAvatar: '🐰', createdAt: threeDaysAgo.toISOString() },
+  { id: 'pv13', pollId: 'p4', optionIds: ['o14'], roommateId: 'r3', roommateName: '大壮', roommateAvatar: '🐻', createdAt: threeDaysAgo.toISOString() },
+  { id: 'pv14', pollId: 'p4', optionIds: ['o15'], roommateId: 'r4', roommateName: '阿花', roommateAvatar: '🦊', createdAt: threeDaysAgo.toISOString() },
 ];

@@ -1,8 +1,8 @@
-import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
@@ -20,6 +20,14 @@ export function EmptyState({ type = 'active' }: EmptyStateProps) {
       messages = WISH_EMPTY_MESSAGES.fulfilled;
     } else if (type === 'wish-archived') {
       messages = WISH_EMPTY_MESSAGES.archived;
+    } else if (type === 'poll-all') {
+      messages = POLL_EMPTY_MESSAGES.all;
+    } else if (type === 'poll-active') {
+      messages = POLL_EMPTY_MESSAGES.active;
+    } else if (type === 'poll-ended') {
+      messages = POLL_EMPTY_MESSAGES.ended;
+    } else if (type === 'poll-archived') {
+      messages = POLL_EMPTY_MESSAGES.archived;
     } else {
       messages = EMPTY_MESSAGES[type];
     }

@@ -260,3 +260,49 @@ export interface WishLendOffer {
   note?: string;
   createdAt: string;
 }
+
+export type PollStatus = 'active' | 'ended' | 'archived';
+
+export type PollVisibility = 'public' | 'anonymous';
+
+export type PollType = 'single' | 'multiple';
+
+export interface PollOption {
+  id: string;
+  text: string;
+  emoji?: string;
+}
+
+export interface PollVote {
+  id: string;
+  pollId: string;
+  optionIds: string[];
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  createdAt: string;
+}
+
+export interface Poll {
+  id: string;
+  houseId: string;
+  title: string;
+  description: string;
+  emoji: string;
+  type: PollType;
+  visibility: PollVisibility;
+  options: PollOption[];
+  creatorId: string;
+  creatorName: string;
+  creatorAvatar: string;
+  status: PollStatus;
+  endAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PollFilterOption {
+  key: PollStatus | 'all';
+  label: string;
+  emoji: string;
+}
