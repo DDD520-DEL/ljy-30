@@ -105,10 +105,11 @@ export function WishCard({ wish }: WishCardProps) {
             </div>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-400">{formatDate(wish.createdAt)}</span>
-              {(announcementRoommateId === wish.requesterId || wish.status === 'active') && (
+              {announcementRoommateId === wish.requesterId && (
                 <button
                   onClick={handleDelete}
                   className="p-1 text-gray-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                  title="删除心愿"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

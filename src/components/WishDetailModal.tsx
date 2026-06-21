@@ -309,7 +309,7 @@ export function WishDetailModal({ isOpen, onClose }: WishDetailModalProps) {
             </div>
           )}
 
-          {isRequester && selectedWish.status === 'active' && (
+          {isRequester && (
             <button
               onClick={handleDelete}
               className="w-full py-3 border-2 border-danger-200 text-danger-500 rounded-xl font-medium hover:bg-danger-50 transition-colors flex items-center justify-center gap-2"
