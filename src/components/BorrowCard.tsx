@@ -1,6 +1,6 @@
 import type { BorrowRecord } from '@/types';
 import { getDueLabel, isOverdue } from '@/utils/date';
-import { Check, ArrowUpRight, ArrowDownLeft, Package, AlertCircle, DollarSign, Clock, MessageCircle } from 'lucide-react';
+import { Check, ArrowUpRight, ArrowDownLeft, Package, AlertCircle, DollarSign, Clock, MessageCircle, Users } from 'lucide-react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 
 interface BorrowCardProps {
@@ -11,7 +11,7 @@ interface BorrowCardProps {
 }
 
 export function BorrowCard({ record, onClick, onReturn, isReturned = false }: BorrowCardProps) {
-  const { getInventoryItemById, getCompensationByRecordId, getCommentCountByRecordId } = useBorrowStore();
+  const { getInventoryItemById, getCompensationByRecordId, getCommentCountByRecordId, getReservationCountByRecordId } = useBorrowStore();
   const dueInfo = getDueLabel(record.expectedReturnDate);
   const isLend = record.type === 'lend';
   const isRecordOverdue = !isReturned && isOverdue(record.expectedReturnDate);
@@ -20,6 +20,7 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
   const isLowStock = inventoryItem && inventoryItem.currentQuantity <= inventoryItem.threshold;
   const compensation = getCompensationByRecordId(record.id);
   const commentCount = getCommentCountByRecordId(record.id);
+  const queueCount = !isReturned ? getReservationCountByRecordId(record.id) : 0;
 
   const getBorderColor = () => {
     if (isReturned) return 'border-gray-200';
@@ -64,10 +65,28 @@ export function BorrowCard({ record, onClick, onReturn, isReturned = false }: Bo
         ${isRecordOverdue ? 'animate-pulse-soft' : ''}
         animate-slide-up`}
     >
-      {commentCount > 0 && (
+      {commentCount > 0 && queueCount > 0 && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-indigo-500 text-white text-xs font-medium rounded-full shadow-md">
+            <Users className="w-3 h-3" />
+            <span>{queueCount}</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-500 text-white text-xs font-medium rounded-full shadow-md">
+            <MessageCircle className="w-3 h-3" />
+            <span>{commentCount}</span>
+          </div>
+        </div>
+      )}
+      {commentCount > 0 && queueCount === 0 && (
         <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 bg-primary-500 text-white text-xs font-medium rounded-full shadow-md">
           <MessageCircle className="w-3 h-3" />
           <span>{commentCount}</span>
+        </div>
+      )}
+      {commentCount === 0 && queueCount > 0 && (
+        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 bg-indigo-500 text-white text-xs font-medium rounded-full shadow-md">
+          <Users className="w-3 h-3" />
+          <span>{queueCount}人排队</span>
         </div>
       )}
 

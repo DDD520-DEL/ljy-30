@@ -339,6 +339,24 @@ export interface MaintenanceFilterOption {
   emoji: string;
 }
 
+export type ReservationStatus = 'waiting' | 'notified' | 'cancelled' | 'fulfilled';
+
+export interface ReservationEntry {
+  id: string;
+  houseId: string;
+  recordId: string;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  status: ReservationStatus;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+  notifiedAt?: string;
+  cancelledAt?: string;
+  fulfilledAt?: string;
+}
+
 export interface MaintenanceItemOption {
   name: string;
   emoji: string;

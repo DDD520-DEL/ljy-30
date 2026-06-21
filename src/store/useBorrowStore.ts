@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus, ReservationEntry, ReservationStatus } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS } from '@/data/mockData';
 import { isOverdue, isToday, isBirthdayToday, isMoveInAnniversaryToday, getDaysUntilBirthday, getDaysUntilMoveInAnniversary, getMonthBirthdays, getMonthMoveInAnniversaries } from '@/utils/date';
 
@@ -223,6 +223,17 @@ interface BorrowState {
   getMaintenanceRecords: () => MaintenanceRecord[];
   getMaintenanceRecordsByStatus: (status: MaintenanceStatus | 'all') => MaintenanceRecord[];
   getMaintenanceStats: () => { total: number; pending: number; repairing: number; completed: number; totalCost: number };
+
+  reservations: ReservationEntry[];
+  addReservation: (recordId: string, roommateId: string, roommateName: string, roommateAvatar: string) => void;
+  cancelReservation: (entryId: string) => void;
+  getReservationsByRecordId: (recordId: string) => ReservationEntry[];
+  getWaitingReservationsByRecordId: (recordId: string) => ReservationEntry[];
+  getReservationByRecordAndRoommate: (recordId: string, roommateId: string) => ReservationEntry | undefined;
+  getReservationCountByRecordId: (recordId: string) => number;
+  notifyNextInQueue: (recordId: string) => ReservationEntry | undefined;
+  fulfillReservation: (entryId: string) => void;
+  getReservationStats: () => { total: number; waiting: number; notified: number; cancelled: number; fulfilled: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -275,6 +286,7 @@ export const useBorrowStore = create<BorrowState>()(
       pollFilter: 'all',
       pollRoommateId: null,
       maintenanceRecords: MOCK_MAINTENANCE_RECORDS,
+      reservations: [],
       showAddMaintenanceModal: false,
       showMaintenanceDetailModal: false,
       selectedMaintenance: null,
@@ -357,6 +369,7 @@ export const useBorrowStore = create<BorrowState>()(
             return poll && poll.houseId === houseId ? false : true;
           }),
           maintenanceRecords: state.maintenanceRecords.filter((r) => r.houseId !== houseId),
+          reservations: state.reservations.filter((r) => r.houseId !== houseId),
         }));
       },
 
@@ -421,6 +434,10 @@ export const useBorrowStore = create<BorrowState>()(
             damageDescription: options.damageDescription || '物品损坏',
             amount: options.compensationAmount,
           });
+        }
+
+        if (record) {
+          get().notifyNextInQueue(id);
         }
       },
 
@@ -1802,6 +1819,151 @@ export const useBorrowStore = create<BorrowState>()(
           repairing: records.filter((r) => r.status === 'repairing').length,
           completed: completed.length,
           totalCost,
+        };
+      },
+
+      addReservation: (recordId, roommateId, roommateName, roommateAvatar) => {
+        const existing = get().getReservationByRecordAndRoommate(recordId, roommateId);
+        if (existing && existing.status !== 'cancelled') return;
+
+        const houseId = get().currentHouseId;
+        const now = new Date().toISOString();
+        const waitingCount = get().reservations.filter(
+          (r) => r.recordId === recordId && r.houseId === houseId && r.status === 'waiting'
+        ).length;
+
+        const newEntry: ReservationEntry = {
+          id: generateId(),
+          houseId,
+          recordId,
+          roommateId,
+          roommateName,
+          roommateAvatar,
+          status: 'waiting',
+          position: waitingCount + 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ reservations: [...state.reservations, newEntry] }));
+      },
+
+      cancelReservation: (entryId) => {
+        const now = new Date().toISOString();
+        set((state) => {
+          const entry = state.reservations.find((r) => r.id === entryId);
+          if (!entry || entry.status !== 'waiting') return state;
+
+          const updated = state.reservations.map((r) =>
+            r.id === entryId
+              ? { ...r, status: 'cancelled' as ReservationStatus, cancelledAt: now, updatedAt: now }
+              : r
+          );
+
+          const waitingEntries = updated.filter(
+            (r) => r.recordId === entry.recordId && r.houseId === entry.houseId && r.status === 'waiting'
+          ).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+          const repositioned = updated.map((r) => {
+            if (r.recordId === entry.recordId && r.houseId === entry.houseId && r.status === 'waiting') {
+              const idx = waitingEntries.findIndex((w) => w.id === r.id);
+              if (idx !== -1 && r.position !== idx + 1) {
+                return { ...r, position: idx + 1, updatedAt: now };
+              }
+            }
+            return r;
+          });
+
+          return { reservations: repositioned };
+        });
+      },
+
+      getReservationsByRecordId: (recordId) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .reservations.filter((r) => r.houseId === houseId && r.recordId === recordId)
+          .sort((a, b) => {
+            const statusOrder: Record<ReservationStatus, number> = { notified: 0, waiting: 1, fulfilled: 2, cancelled: 3 };
+            if (statusOrder[a.status] !== statusOrder[b.status]) {
+              return statusOrder[a.status] - statusOrder[b.status];
+            }
+            return a.position - b.position;
+          });
+      },
+
+      getWaitingReservationsByRecordId: (recordId) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .reservations.filter((r) => r.houseId === houseId && r.recordId === recordId && r.status === 'waiting')
+          .sort((a, b) => a.position - b.position);
+      },
+
+      getReservationByRecordAndRoommate: (recordId, roommateId) => {
+        const houseId = get().currentHouseId;
+        return get().reservations.find(
+          (r) => r.houseId === houseId && r.recordId === recordId && r.roommateId === roommateId && r.status !== 'cancelled'
+        );
+      },
+
+      getReservationCountByRecordId: (recordId) => {
+        const houseId = get().currentHouseId;
+        return get().reservations.filter(
+          (r) => r.houseId === houseId && r.recordId === recordId && r.status === 'waiting'
+        ).length;
+      },
+
+      notifyNextInQueue: (recordId) => {
+        const houseId = get().currentHouseId;
+        const waiting = get()
+          .reservations.filter((r) => r.houseId === houseId && r.recordId === recordId && r.status === 'waiting')
+          .sort((a, b) => a.position - b.position);
+
+        if (waiting.length === 0) return undefined;
+
+        const next = waiting[0];
+        const now = new Date().toISOString();
+        const record = get().records.find((r) => r.id === recordId);
+
+        set((state) => ({
+          reservations: state.reservations.map((r) =>
+            r.id === next.id
+              ? { ...r, status: 'notified' as ReservationStatus, notifiedAt: now, updatedAt: now }
+              : r
+          ),
+        }));
+
+        if (record) {
+          get().addAnnouncement({
+            content: `${next.roommateName} 排队预约的「${record.itemEmoji} ${record.itemName}」已归还，轮到你借用了！`,
+            roommateId: next.roommateId,
+            roommateName: next.roommateName,
+            roommateAvatar: next.roommateAvatar,
+            emoji: '🔔',
+          });
+        }
+
+        return { ...next, status: 'notified' as ReservationStatus, notifiedAt: now, updatedAt: now };
+      },
+
+      fulfillReservation: (entryId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          reservations: state.reservations.map((r) =>
+            r.id === entryId
+              ? { ...r, status: 'fulfilled' as ReservationStatus, fulfilledAt: now, updatedAt: now }
+              : r
+          ),
+        }));
+      },
+
+      getReservationStats: () => {
+        const houseId = get().currentHouseId;
+        const reservations = get().reservations.filter((r) => r.houseId === houseId);
+        return {
+          total: reservations.length,
+          waiting: reservations.filter((r) => r.status === 'waiting').length,
+          notified: reservations.filter((r) => r.status === 'notified').length,
+          cancelled: reservations.filter((r) => r.status === 'cancelled').length,
+          fulfilled: reservations.filter((r) => r.status === 'fulfilled').length,
         };
       },
     }),
