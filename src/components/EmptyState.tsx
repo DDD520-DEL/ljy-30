@@ -1,8 +1,8 @@
-import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES, BIRTHDAY_EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES, BIRTHDAY_EMPTY_MESSAGES, EXPRESS_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed' | 'birthday' | 'anniversary';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed' | 'birthday' | 'anniversary' | 'express-all' | 'express-pending' | 'express-picked';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
@@ -40,6 +40,12 @@ export function EmptyState({ type = 'active' }: EmptyStateProps) {
       messages = BIRTHDAY_EMPTY_MESSAGES.birthday;
     } else if (type === 'anniversary') {
       messages = BIRTHDAY_EMPTY_MESSAGES.anniversary;
+    } else if (type === 'express-all') {
+      messages = EXPRESS_EMPTY_MESSAGES.all;
+    } else if (type === 'express-pending') {
+      messages = EXPRESS_EMPTY_MESSAGES.pending;
+    } else if (type === 'express-picked') {
+      messages = EXPRESS_EMPTY_MESSAGES.picked;
     } else {
       messages = EMPTY_MESSAGES[type];
     }

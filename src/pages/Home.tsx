@@ -20,8 +20,12 @@ import { BirthdayCelebrationModal } from '@/components/BirthdayCelebrationModal'
 import { AnnouncementMarquee } from '@/components/AnnouncementMarquee';
 import { AnnouncementModal } from '@/components/AnnouncementModal';
 import { TabBar } from '@/components/TabBar';
+import { ExpressReminderBanner } from '@/components/ExpressReminderBanner';
+import { AddExpressModal } from '@/components/AddExpressModal';
+import { ExpressDetailModal } from '@/components/ExpressDetailModal';
 import { useNotification } from '@/hooks/useNotification';
 import { Plus, ChevronDown, ChevronUp, Package, Download, Upload } from 'lucide-react';
+import type { ExpressRecord } from '@/types';
 import { recordsToCSV, csvToRecords, downloadCSV, formatDateForFilename } from '@/utils/csv';
 
 export default function Home() {
@@ -46,6 +50,13 @@ export default function Home() {
     importRecords,
     getTodayBirthdays,
     getTodayMoveInAnniversaries,
+    showAddExpressModal,
+    setShowAddExpressModal,
+    showExpressDetailModal,
+    setShowExpressDetailModal,
+    selectedExpress,
+    setSelectedExpress,
+    pickUpExpress,
   } = useBorrowStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -112,6 +123,11 @@ export default function Home() {
     setShowDetailModal(false);
   };
 
+  const openExpressDetail = (record: ExpressRecord) => {
+    setSelectedExpress(record);
+    setShowExpressDetailModal(true);
+  };
+
   const handleCardClick = (record: BorrowRecord) => {
     setSelectedRecord(record);
     setShowDetailModal(true);
@@ -166,6 +182,7 @@ export default function Home() {
     <div className="min-h-screen bg-cream">
       <div className="max-w-md mx-auto bg-cream min-h-screen relative pb-24">
         <AnnouncementMarquee onOpenAnnouncementModal={() => setShowAnnouncementModal(true)} />
+        <ExpressReminderBanner onItemClick={(record) => openExpressDetail(record)} />
         <ReturnReminderBanner onItemClick={(record) => openRecordDetail(record)} />
         <ChoreReminderBanner />
         <Header />
@@ -334,6 +351,19 @@ export default function Home() {
         onClose={() => setShowBirthdayCelebration(false)}
         birthdayRoommates={getTodayBirthdays()}
         anniversaryRoommates={getTodayMoveInAnniversaries()}
+      />
+
+      <AddExpressModal
+        isOpen={showAddExpressModal}
+        onClose={() => setShowAddExpressModal(false)}
+      />
+
+      <ExpressDetailModal
+        isOpen={showExpressDetailModal}
+        onClose={() => {
+          setShowExpressDetailModal(false);
+          setSelectedExpress(null);
+        }}
       />
     </div>
   );

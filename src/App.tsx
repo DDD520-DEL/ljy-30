@@ -7,6 +7,7 @@ import WishList from "@/pages/WishList";
 import Voting from "@/pages/Voting";
 import Maintenance from "@/pages/Maintenance";
 import Birthdays from "@/pages/Birthdays";
+import Express from "@/pages/Express";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/voting" element={<Voting />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/birthdays" element={<Birthdays />} />
+        <Route path="/express" element={<Express />} />
       </Routes>
     </Router>
   );

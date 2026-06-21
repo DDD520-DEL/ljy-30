@@ -361,3 +361,29 @@ export interface MaintenanceItemOption {
   name: string;
   emoji: string;
 }
+
+export type ExpressStatus = 'pending' | 'picked';
+
+export interface ExpressRecord {
+  id: string;
+  houseId: string;
+  trackingNumber: string;
+  recipientId: string;
+  recipientName: string;
+  recipientAvatar: string;
+  storageLocation: string;
+  courierId: string;
+  courierName: string;
+  courierAvatar: string;
+  note?: string;
+  status: ExpressStatus;
+  pickedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpressFilterOption {
+  key: ExpressStatus | 'all';
+  label: string;
+  emoji: string;
+}

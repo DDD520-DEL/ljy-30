@@ -1,4 +1,4 @@
-import type { ItemOption, BillCategoryOption, ChoreTaskOption, MaintenanceFilterOption, MaintenanceItemOption } from '@/types';
+import type { ItemOption, BillCategoryOption, ChoreTaskOption, MaintenanceFilterOption, MaintenanceItemOption, ExpressFilterOption } from '@/types';
 
 export const COMMON_ITEMS: ItemOption[] = [
   { name: '洗衣液', emoji: '🧴' },
@@ -270,5 +270,26 @@ export const BIRTHDAY_EMPTY_MESSAGES = {
     { emoji: '🏠', text: '本月还没有入住纪念日' },
     { emoji: '📅', text: '去室友管理中添加入住日期吧' },
     { emoji: '✨', text: '每个入住纪念日都值得庆祝' },
+  ],
+};
+
+export const EXPRESS_FILTER_OPTIONS: ExpressFilterOption[] = [
+  { key: 'all', label: '全部', emoji: '📋' },
+  { key: 'pending', label: '待取件', emoji: '⏳' },
+  { key: 'picked', label: '已签收', emoji: '✅' },
+];
+
+export const EXPRESS_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '📦', text: '还没有快递记录哦~' },
+    { emoji: '🏠', text: '代收快递后在这里登记' },
+  ],
+  pending: [
+    { emoji: '✅', text: '太棒了！没有待取的快递' },
+    { emoji: '🎯', text: '所有快递都已签收' },
+  ],
+  picked: [
+    { emoji: '📭', text: '还没有已签收的快递' },
+    { emoji: '🆕', text: '第一次签收记录等待诞生' },
   ],
 };

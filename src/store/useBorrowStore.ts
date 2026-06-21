@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus, ReservationEntry, ReservationStatus } from '@/types';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus, ReservationEntry, ReservationStatus, ExpressRecord, ExpressStatus } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS } from '@/data/mockData';
 import { isOverdue, isToday, isBirthdayToday, isMoveInAnniversaryToday, getDaysUntilBirthday, getDaysUntilMoveInAnniversary, getMonthBirthdays, getMonthMoveInAnniversaries } from '@/utils/date';
 
@@ -234,6 +234,28 @@ interface BorrowState {
   notifyNextInQueue: (recordId: string) => ReservationEntry | undefined;
   fulfillReservation: (entryId: string) => void;
   getReservationStats: () => { total: number; waiting: number; notified: number; cancelled: number; fulfilled: number };
+
+      expressRecords: ExpressRecord[];
+      showAddExpressModal: boolean;
+      showExpressDetailModal: boolean;
+      selectedExpress: ExpressRecord | null;
+      expressFilter: ExpressStatus | 'all';
+
+      setShowAddExpressModal: (show: boolean) => void;
+      setShowExpressDetailModal: (show: boolean) => void;
+      setSelectedExpress: (record: ExpressRecord | null) => void;
+      setExpressFilter: (filter: ExpressStatus | 'all') => void;
+
+      addExpressRecord: (record: Omit<ExpressRecord, 'id' | 'houseId' | 'status' | 'createdAt' | 'updatedAt'>) => void;
+      updateExpressRecord: (id: string, updates: Partial<ExpressRecord>) => void;
+      deleteExpressRecord: (id: string) => void;
+      pickUpExpress: (id: string) => void;
+
+      getExpressRecords: () => ExpressRecord[];
+      getExpressRecordsByStatus: (status: ExpressStatus | 'all') => ExpressRecord[];
+      getPendingExpressCount: () => number;
+      getPendingExpressByRecipient: (recipientId: string) => ExpressRecord[];
+      getExpressStats: () => { total: number; pending: number; picked: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -291,6 +313,11 @@ export const useBorrowStore = create<BorrowState>()(
       showMaintenanceDetailModal: false,
       selectedMaintenance: null,
       maintenanceFilter: 'all',
+      expressRecords: [],
+      showAddExpressModal: false,
+      showExpressDetailModal: false,
+      selectedExpress: null,
+      expressFilter: 'all',
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -370,6 +397,7 @@ export const useBorrowStore = create<BorrowState>()(
           }),
           maintenanceRecords: state.maintenanceRecords.filter((r) => r.houseId !== houseId),
           reservations: state.reservations.filter((r) => r.houseId !== houseId),
+          expressRecords: state.expressRecords.filter((r) => r.houseId !== houseId),
         }));
       },
 
@@ -1965,6 +1993,107 @@ export const useBorrowStore = create<BorrowState>()(
           notified: reservations.filter((r) => r.status === 'notified').length,
           cancelled: reservations.filter((r) => r.status === 'cancelled').length,
           fulfilled: reservations.filter((r) => r.status === 'fulfilled').length,
+        };
+      },
+
+      setShowAddExpressModal: (show) => set({ showAddExpressModal: show }),
+      setShowExpressDetailModal: (show) => set({ showExpressDetailModal: show }),
+      setSelectedExpress: (record) => set({ selectedExpress: record }),
+      setExpressFilter: (filter) => set({ expressFilter: filter }),
+
+      addExpressRecord: (record) => {
+        const now = new Date().toISOString();
+        const newRecord: ExpressRecord = {
+          ...record,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: 'pending',
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ expressRecords: [newRecord, ...state.expressRecords] }));
+      },
+
+      updateExpressRecord: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          expressRecords: state.expressRecords.map((r) =>
+            r.id === id ? { ...r, ...updates, updatedAt: now } : r
+          ),
+        }));
+      },
+
+      deleteExpressRecord: (id) => {
+        set((state) => ({
+          expressRecords: state.expressRecords.filter((r) => r.id !== id),
+        }));
+      },
+
+      pickUpExpress: (id) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          expressRecords: state.expressRecords.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'picked' as const,
+                  pickedAt: now,
+                  updatedAt: now,
+                }
+              : r
+          ),
+        }));
+      },
+
+      getExpressRecords: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .expressRecords.filter((r) => r.houseId === houseId)
+          .sort((a, b) => {
+            const statusOrder = { pending: 0, picked: 1 };
+            if (statusOrder[a.status] !== statusOrder[b.status]) {
+              return statusOrder[a.status] - statusOrder[b.status];
+            }
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+      },
+
+      getExpressRecordsByStatus: (status) => {
+        const houseId = get().currentHouseId;
+        let filtered = get().expressRecords.filter((r) => r.houseId === houseId);
+        if (status !== 'all') {
+          filtered = filtered.filter((r) => r.status === status);
+        }
+        return filtered.sort((a, b) => {
+          if (status === 'all') {
+            const statusOrder = { pending: 0, picked: 1 };
+            if (statusOrder[a.status] !== statusOrder[b.status]) {
+              return statusOrder[a.status] - statusOrder[b.status];
+            }
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      },
+
+      getPendingExpressCount: () => {
+        const houseId = get().currentHouseId;
+        return get().expressRecords.filter((r) => r.houseId === houseId && r.status === 'pending').length;
+      },
+
+      getPendingExpressByRecipient: (recipientId) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .expressRecords.filter((r) => r.houseId === houseId && r.status === 'pending' && r.recipientId === recipientId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getExpressStats: () => {
+        const houseId = get().currentHouseId;
+        const records = get().expressRecords.filter((r) => r.houseId === houseId);
+        return {
+          total: records.length,
+          pending: records.filter((r) => r.status === 'pending').length,
+          picked: records.filter((r) => r.status === 'picked').length,
         };
       },
     }),

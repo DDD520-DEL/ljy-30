@@ -1,7 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake } from 'lucide-react';
+import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake, Package } from 'lucide-react';
+import { useBorrowStore } from '@/store/useBorrowStore';
 
 export function TabBar() {
+  const { getPendingExpressCount } = useBorrowStore();
+  const pendingExpressCount = getPendingExpressCount();
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-50">
       <div className="max-w-md mx-auto flex items-center justify-around py-2 px-1 overflow-x-auto">
@@ -46,6 +50,25 @@ export function TabBar() {
         >
           <Wrench className="w-5 h-5 mb-1" />
           <span className="text-[11px] font-medium">维修</span>
+        </NavLink>
+
+        <NavLink
+          to="/express"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all flex-shrink-0 relative ${
+              isActive
+                ? 'text-blue-500 bg-blue-50'
+                : 'text-gray-400 hover:text-gray-600'
+            }`
+          }
+        >
+          <Package className="w-5 h-5 mb-1" />
+          {pendingExpressCount > 0 && (
+            <span className="absolute top-0 right-0 w-5 h-5 bg-danger-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center transform translate-x-1 -translate-y-1">
+              {pendingExpressCount > 99 ? '99+' : pendingExpressCount}
+            </span>
+          )}
+          <span className="text-[11px] font-medium">快递</span>
         </NavLink>
 
         <NavLink
