@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus } from '@/types';
 import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS } from '@/data/mockData';
-import { isOverdue, isToday } from '@/utils/date';
+import { isOverdue, isToday, isBirthdayToday, isMoveInAnniversaryToday, getDaysUntilBirthday, getDaysUntilMoveInAnniversary, getMonthBirthdays, getMonthMoveInAnniversaries } from '@/utils/date';
 
 interface BorrowState {
   houses: House[];
@@ -50,6 +50,13 @@ interface BorrowState {
   addRoommate: (roommate: Omit<Roommate, 'id' | 'houseId' | 'createdAt'>) => void;
   deleteRoommate: (id: string) => void;
   updateRoommate: (id: string, updates: Partial<Roommate>) => void;
+  getRoommates: () => Roommate[];
+  getTodayBirthdays: () => Roommate[];
+  getTodayMoveInAnniversaries: () => Roommate[];
+  getMonthBirthdays: () => Roommate[];
+  getMonthMoveInAnniversaries: () => Roommate[];
+  getUpcomingBirthdays: (days?: number) => Roommate[];
+  getUpcomingMoveInAnniversaries: (days?: number) => Roommate[];
 
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'currentQuantity'>) => void;
   deleteInventoryItem: (id: string) => void;
@@ -541,6 +548,61 @@ export const useBorrowStore = create<BorrowState>()(
             r.id === id ? { ...r, ...updates } : r
           ),
         }));
+      },
+
+      getRoommates: () => {
+        const houseId = get().currentHouseId;
+        return get().roommates.filter((r) => r.houseId === houseId);
+      },
+
+      getTodayBirthdays: () => {
+        const houseId = get().currentHouseId;
+        return get().roommates.filter(
+          (r) => r.houseId === houseId && isBirthdayToday(r.birthday || '')
+        );
+      },
+
+      getTodayMoveInAnniversaries: () => {
+        const houseId = get().currentHouseId;
+        return get().roommates.filter(
+          (r) => r.houseId === houseId && isMoveInAnniversaryToday(r.moveInDate || '')
+        );
+      },
+
+      getMonthBirthdays: () => {
+        const houseId = get().currentHouseId;
+        const houseRoommates = get().roommates.filter((r) => r.houseId === houseId);
+        return getMonthBirthdays(houseRoommates) as Roommate[];
+      },
+
+      getMonthMoveInAnniversaries: () => {
+        const houseId = get().currentHouseId;
+        const houseRoommates = get().roommates.filter((r) => r.houseId === houseId);
+        return getMonthMoveInAnniversaries(houseRoommates) as Roommate[];
+      },
+
+      getUpcomingBirthdays: (days = 7) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .roommates.filter((r) => {
+            if (r.houseId !== houseId || !r.birthday) return false;
+            const daysUntil = getDaysUntilBirthday(r.birthday);
+            return daysUntil >= 0 && daysUntil <= days;
+          })
+          .sort((a, b) => getDaysUntilBirthday(a.birthday!) - getDaysUntilBirthday(b.birthday!));
+      },
+
+      getUpcomingMoveInAnniversaries: (days = 7) => {
+        const houseId = get().currentHouseId;
+        return get()
+          .roommates.filter((r) => {
+            if (r.houseId !== houseId || !r.moveInDate) return false;
+            const daysUntil = getDaysUntilMoveInAnniversary(r.moveInDate);
+            return daysUntil >= 0 && daysUntil <= days;
+          })
+          .sort((a, b) =>
+            getDaysUntilMoveInAnniversary(a.moveInDate!) - getDaysUntilMoveInAnniversary(b.moveInDate!)
+          );
       },
 
       addInventoryItem: (item) => {

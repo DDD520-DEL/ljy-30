@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import type { BorrowRecord } from '@/types';
 import { Header } from '@/components/Header';
@@ -15,6 +15,8 @@ import { CompensationModal } from '@/components/CompensationModal';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
 import { ChoreReminderBanner } from '@/components/ChoreReminderBanner';
+import { BirthdayReminderBanner } from '@/components/BirthdayReminderBanner';
+import { BirthdayCelebrationModal } from '@/components/BirthdayCelebrationModal';
 import { AnnouncementMarquee } from '@/components/AnnouncementMarquee';
 import { AnnouncementModal } from '@/components/AnnouncementModal';
 import { TabBar } from '@/components/TabBar';
@@ -42,6 +44,8 @@ export default function Home() {
     selectedRoommateId,
     getInventoryStats,
     importRecords,
+    getTodayBirthdays,
+    getTodayMoveInAnniversaries,
   } = useBorrowStore();
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -50,6 +54,7 @@ export default function Home() {
   const [showCompensationModal, setShowCompensationModal] = useState(false);
   const [compensationBorrowRecordId, setCompensationBorrowRecordId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [showBirthdayCelebration, setShowBirthdayCelebration] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const inventoryStats = getInventoryStats();
@@ -72,6 +77,22 @@ export default function Home() {
       openRecordDetail(recordId);
     },
   });
+
+  useEffect(() => {
+    const todayBirthdays = getTodayBirthdays();
+    const todayAnniversaries = getTodayMoveInAnniversaries();
+
+    if (todayBirthdays.length > 0 || todayAnniversaries.length > 0) {
+      const hasShown = sessionStorage.getItem('birthdayCelebrationShown');
+      if (!hasShown) {
+        const timer = setTimeout(() => {
+          setShowBirthdayCelebration(true);
+          sessionStorage.setItem('birthdayCelebrationShown', 'true');
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [getTodayBirthdays, getTodayMoveInAnniversaries]);
 
   const activeRecords = getSearchFilteredRecords();
   const historyRecords = getSearchFilteredHistoryRecords();
@@ -148,6 +169,8 @@ export default function Home() {
         <ReturnReminderBanner onItemClick={(record) => openRecordDetail(record)} />
         <ChoreReminderBanner />
         <Header />
+
+        <BirthdayReminderBanner />
 
         <LowStockBanner />
 
@@ -305,6 +328,13 @@ export default function Home() {
       />
 
       <Celebration trigger={celebrate} onComplete={() => setCelebrate(false)} />
+
+      <BirthdayCelebrationModal
+        isOpen={showBirthdayCelebration}
+        onClose={() => setShowBirthdayCelebration(false)}
+        birthdayRoommates={getTodayBirthdays()}
+        anniversaryRoommates={getTodayMoveInAnniversaries()}
+      />
     </div>
   );
 }

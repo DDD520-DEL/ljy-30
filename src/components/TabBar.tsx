@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench } from 'lucide-react';
+import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake } from 'lucide-react';
 
 export function TabBar() {
   return (
@@ -18,6 +18,20 @@ export function TabBar() {
         >
           <Home className="w-5 h-5 mb-1" />
           <span className="text-[11px] font-medium">首页</span>
+        </NavLink>
+
+        <NavLink
+          to="/birthdays"
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center py-2 px-1.5 rounded-xl transition-all flex-shrink-0 ${
+              isActive
+                ? 'text-pink-500 bg-pink-50'
+                : 'text-gray-400 hover:text-gray-600'
+            }`
+          }
+        >
+          <Cake className="w-5 h-5 mb-1" />
+          <span className="text-[11px] font-medium">生日</span>
         </NavLink>
 
         <NavLink

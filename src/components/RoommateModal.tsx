@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { ROOMMATE_AVATARS, ROOMMATE_COLORS } from '@/data/constants';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Edit2, Cake, Home as HomeIcon, Check } from 'lucide-react';
+import { formatDateShort, getAge, getYearsSinceMoveIn } from '@/utils/date';
 
 interface RoommateModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface RoommateModalProps {
 }
 
 export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
-  const { roommates, currentHouseId, addRoommate, deleteRoommate, getCurrentHouse } = useBorrowStore();
+  const { roommates, currentHouseId, addRoommate, deleteRoommate, updateRoommate, getCurrentHouse } = useBorrowStore();
   const currentHouse = getCurrentHouse();
 
   const currentRoommates = useMemo(
@@ -17,9 +18,21 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
     [roommates, currentHouseId]
   );
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRoommateId, setEditingRoommateId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(ROOMMATE_AVATARS[0]);
   const [selectedColor, setSelectedColor] = useState(ROOMMATE_COLORS[0]);
+  const [birthday, setBirthday] = useState('');
+  const [moveInDate, setMoveInDate] = useState('');
+
+  const resetForm = () => {
+    setNewName('');
+    setSelectedAvatar(ROOMMATE_AVATARS[Math.floor(Math.random() * ROOMMATE_AVATARS.length)]);
+    setSelectedColor(ROOMMATE_COLORS[Math.floor(Math.random() * ROOMMATE_COLORS.length)]);
+    setBirthday('');
+    setMoveInDate('');
+    setEditingRoommateId(null);
+  };
 
   const handleAddRoommate = () => {
     if (!newName.trim()) return;
@@ -27,10 +40,35 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
       name: newName.trim(),
       avatar: selectedAvatar,
       color: selectedColor,
+      birthday: birthday || undefined,
+      moveInDate: moveInDate || undefined,
     });
-    setNewName('');
-    setSelectedAvatar(ROOMMATE_AVATARS[Math.floor(Math.random() * ROOMMATE_AVATARS.length)]);
-    setSelectedColor(ROOMMATE_COLORS[Math.floor(Math.random() * ROOMMATE_COLORS.length)]);
+    resetForm();
+    setShowAddForm(false);
+  };
+
+  const handleEditRoommate = (id: string) => {
+    const roommate = roommates.find((r) => r.id === id);
+    if (!roommate) return;
+    setNewName(roommate.name);
+    setSelectedAvatar(roommate.avatar);
+    setSelectedColor(roommate.color);
+    setBirthday(roommate.birthday || '');
+    setMoveInDate(roommate.moveInDate || '');
+    setEditingRoommateId(id);
+    setShowAddForm(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingRoommateId || !newName.trim()) return;
+    updateRoommate(editingRoommateId, {
+      name: newName.trim(),
+      avatar: selectedAvatar,
+      color: selectedColor,
+      birthday: birthday || undefined,
+      moveInDate: moveInDate || undefined,
+    });
+    resetForm();
     setShowAddForm(false);
   };
 
@@ -38,6 +76,11 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
     if (confirm(`确定要删除室友"${name}"吗？相关的借还记录不会被删除。`)) {
       deleteRoommate(id);
     }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    setShowAddForm(false);
   };
 
   if (!isOpen) return null;
@@ -77,24 +120,55 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
             currentRoommates.map((roommate) => (
               <div
                 key={roommate.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+                className="p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
               >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
-                  style={{ backgroundColor: roommate.color + '20' }}
-                >
-                  {roommate.avatar}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+                    style={{ backgroundColor: roommate.color + '20' }}
+                  >
+                    {roommate.avatar}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-800">{roommate.name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {roommate.birthday && (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-pink-50 px-2 py-0.5 rounded-full">
+                          <Cake className="w-3 h-3 text-pink-400" />
+                          {formatDateShort(roommate.birthday)}
+                          <span className="text-pink-500 font-medium">
+                            ({getAge(roommate.birthday)}岁)
+                          </span>
+                        </span>
+                      )}
+                      {roommate.moveInDate && (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                          <HomeIcon className="w-3 h-3 text-blue-400" />
+                          入住 {formatDateShort(roommate.moveInDate)}
+                          <span className="text-blue-500 font-medium">
+                            ({getYearsSinceMoveIn(roommate.moveInDate)}年)
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleEditRoommate(roommate.id)}
+                      className="p-2 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-full transition-colors"
+                      title="编辑"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(roommate.id, roommate.name)}
+                      className="p-2 text-gray-400 hover:text-danger-500 hover:bg-danger-50 rounded-full transition-colors"
+                      title="删除"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-800">{roommate.name}</p>
-                  <p className="text-xs text-gray-500">一起合租的好伙伴~</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(roommate.id, roommate.name)}
-                  className="p-2 text-gray-400 hover:text-danger-500 hover:bg-danger-50 rounded-full transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             ))
           )}
@@ -103,8 +177,17 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
         {showAddForm ? (
           <div className="space-y-4 p-4 bg-gray-50 rounded-2xl">
             <h3 className="font-medium text-gray-800 flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              添加新室友
+              {editingRoommateId ? (
+                <>
+                  <Edit2 className="w-4 h-4" />
+                  编辑室友信息
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  添加新室友
+                </>
+              )}
             </h3>
 
             <div>
@@ -150,29 +233,68 @@ export function RoommateModal({ isOpen, onClose }: RoommateModalProps) {
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="输入室友的名字~"
                 className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddRoommate()}
+                onKeyDown={(e) => e.key === 'Enter' && (editingRoommateId ? handleSaveEdit() : handleAddRoommate())}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-2 flex items-center gap-2">
+                <Cake className="w-4 h-4 text-pink-500" />
+                生日 (选填)
+              </label>
+              <input
+                type="date"
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-2 flex items-center gap-2">
+                <HomeIcon className="w-4 h-4 text-blue-500" />
+                入住日期 (选填)
+              </label>
+              <input
+                type="date"
+                value={moveInDate}
+                onChange={(e) => setMoveInDate(e.target.value)}
+                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-primary-400 outline-none transition-colors"
               />
             </div>
 
             <div className="flex gap-2">
               <button
-                onClick={() => setShowAddForm(false)}
+                onClick={handleCancel}
                 className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
               >
                 取消
               </button>
               <button
-                onClick={handleAddRoommate}
+                onClick={editingRoommateId ? handleSaveEdit : handleAddRoommate}
                 disabled={!newName.trim()}
-                className="flex-1 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                添加
+                {editingRoommateId ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    保存
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    添加
+                  </>
+                )}
               </button>
             </div>
           </div>
         ) : (
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddForm(true);
+            }}
             className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-primary-400 hover:text-primary-500 transition-colors flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />

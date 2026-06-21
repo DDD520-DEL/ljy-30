@@ -259,3 +259,16 @@ export const MAINTENANCE_EMPTY_MESSAGES = {
     { emoji: '🆕', text: '第一次维修记录等待诞生' },
   ],
 };
+
+export const BIRTHDAY_EMPTY_MESSAGES = {
+  birthday: [
+    { emoji: '🎂', text: '本月还没有室友过生日' },
+    { emoji: '🎉', text: '平静的一个月，没有生日派对~' },
+    { emoji: '📅', text: '去室友管理中添加生日吧' },
+  ],
+  anniversary: [
+    { emoji: '🏠', text: '本月还没有入住纪念日' },
+    { emoji: '📅', text: '去室友管理中添加入住日期吧' },
+    { emoji: '✨', text: '每个入住纪念日都值得庆祝' },
+  ],
+};

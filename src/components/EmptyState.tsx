@@ -1,8 +1,8 @@
-import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES, BIRTHDAY_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed' | 'birthday' | 'anniversary';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
@@ -36,6 +36,10 @@ export function EmptyState({ type = 'active' }: EmptyStateProps) {
       messages = MAINTENANCE_EMPTY_MESSAGES.repairing;
     } else if (type === 'maintenance-completed') {
       messages = MAINTENANCE_EMPTY_MESSAGES.completed;
+    } else if (type === 'birthday') {
+      messages = BIRTHDAY_EMPTY_MESSAGES.birthday;
+    } else if (type === 'anniversary') {
+      messages = BIRTHDAY_EMPTY_MESSAGES.anniversary;
     } else {
       messages = EMPTY_MESSAGES[type];
     }

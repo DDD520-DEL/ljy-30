@@ -123,3 +123,109 @@ export function formatDateTime(dateStr: string): string {
   const minutes = date.getMinutes().toString().padStart(2, '0');
   return `${month}月${day}日 ${hours}:${minutes}`;
 }
+
+export function isBirthdayToday(birthdayStr: string): boolean {
+  if (!birthdayStr) return false;
+  const birthday = new Date(birthdayStr);
+  const today = new Date();
+  return (
+    birthday.getMonth() === today.getMonth() &&
+    birthday.getDate() === today.getDate()
+  );
+}
+
+export function isMoveInAnniversaryToday(moveInDateStr: string): boolean {
+  if (!moveInDateStr) return false;
+  const moveInDate = new Date(moveInDateStr);
+  const today = new Date();
+  return (
+    moveInDate.getMonth() === today.getMonth() &&
+    moveInDate.getDate() === today.getDate()
+  );
+}
+
+export function getDaysUntilBirthday(birthdayStr: string): number {
+  if (!birthdayStr) return -1;
+  const birthday = new Date(birthdayStr);
+  const today = new Date();
+  birthday.setFullYear(today.getFullYear());
+  birthday.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  if (birthday < today) {
+    birthday.setFullYear(today.getFullYear() + 1);
+  }
+  const diffTime = birthday.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+export function getDaysUntilMoveInAnniversary(moveInDateStr: string): number {
+  if (!moveInDateStr) return -1;
+  const moveInDate = new Date(moveInDateStr);
+  const today = new Date();
+  moveInDate.setFullYear(today.getFullYear());
+  moveInDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  if (moveInDate < today) {
+    moveInDate.setFullYear(today.getFullYear() + 1);
+  }
+  const diffTime = moveInDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+export function getAge(birthdayStr: string): number {
+  if (!birthdayStr) return 0;
+  const birthday = new Date(birthdayStr);
+  const today = new Date();
+  let age = today.getFullYear() - birthday.getFullYear();
+  const monthDiff = today.getMonth() - birthday.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthday.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+export function getYearsSinceMoveIn(moveInDateStr: string): number {
+  if (!moveInDateStr) return 0;
+  const moveInDate = new Date(moveInDateStr);
+  const today = new Date();
+  let years = today.getFullYear() - moveInDate.getFullYear();
+  const monthDiff = today.getMonth() - moveInDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < moveInDate.getDate())) {
+    years--;
+  }
+  return years;
+}
+
+export function getMonthBirthdays(roommates: { id: string; name: string; avatar: string; color: string; birthday?: string }[]): typeof roommates {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  return roommates
+    .filter((r) => {
+      if (!r.birthday) return false;
+      const birthday = new Date(r.birthday);
+      return birthday.getMonth() === currentMonth;
+    })
+    .sort((a, b) => {
+      const dayA = new Date(a.birthday!).getDate();
+      const dayB = new Date(b.birthday!).getDate();
+      return dayA - dayB;
+    });
+}
+
+export function getMonthMoveInAnniversaries(roommates: { id: string; name: string; avatar: string; color: string; moveInDate?: string }[]): typeof roommates {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  return roommates
+    .filter((r) => {
+      if (!r.moveInDate) return false;
+      const moveInDate = new Date(r.moveInDate);
+      return moveInDate.getMonth() === currentMonth;
+    })
+    .sort((a, b) => {
+      const dayA = new Date(a.moveInDate!).getDate();
+      const dayB = new Date(b.moveInDate!).getDate();
+      return dayA - dayB;
+    });
+}

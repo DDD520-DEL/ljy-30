@@ -24,6 +24,8 @@ export interface Roommate {
   name: string;
   avatar: string;
   color: string;
+  birthday?: string;
+  moveInDate?: string;
   createdAt: string;
 }
 
