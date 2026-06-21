@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
@@ -149,6 +149,26 @@ interface BorrowState {
   getAnnouncements: () => Announcement[];
   getActiveAnnouncements: () => Announcement[];
   getUnreadAnnouncementCount: (roommateId: string) => number;
+
+  wishes: Wish[];
+  showWishModal: boolean;
+  showWishDetailModal: boolean;
+  selectedWish: Wish | null;
+  wishFilter: WishStatus | 'all';
+  setShowWishModal: (show: boolean) => void;
+  setShowWishDetailModal: (show: boolean) => void;
+  setSelectedWish: (wish: Wish | null) => void;
+  setWishFilter: (filter: WishStatus | 'all') => void;
+  addWish: (wish: Omit<Wish, 'id' | 'houseId' | 'status' | 'createdAt' | 'updatedAt'>) => void;
+  updateWish: (id: string, updates: Partial<Wish>) => void;
+  deleteWish: (id: string) => void;
+  lendWish: (wishId: string, lenderId: string, lenderName: string, lenderAvatar: string, note?: string) => void;
+  fulfillWish: (wishId: string, note?: string) => void;
+  archiveWish: (wishId: string) => void;
+  getWishes: () => Wish[];
+  getWishesByStatus: (status: WishStatus | 'all') => Wish[];
+  getActiveWishes: () => Wish[];
+  getWishStats: () => { total: number; active: number; fulfilled: number; archived: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -188,6 +208,11 @@ export const useBorrowStore = create<BorrowState>()(
       announcements: MOCK_ANNOUNCEMENTS,
       showAnnouncementModal: false,
       announcementRoommateId: null,
+      wishes: MOCK_WISHES,
+      showWishModal: false,
+      showWishDetailModal: false,
+      selectedWish: null,
+      wishFilter: 'all',
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -259,6 +284,7 @@ export const useBorrowStore = create<BorrowState>()(
           choreAssignments: state.choreAssignments.filter((a) => a.houseId !== houseId),
           choreRotations: state.choreRotations.filter((r) => r.houseId !== houseId),
           announcements: state.announcements.filter((a) => a.houseId !== houseId),
+          wishes: state.wishes.filter((w) => w.houseId !== houseId),
         }));
       },
 
@@ -1115,7 +1141,7 @@ export const useBorrowStore = create<BorrowState>()(
 
       rotateChores: () => {
         const houseId = get().currentHouseId;
-        const { roommates, choreAssignments, choreRotations } = get();
+        const { roommates, choreRotations } = get();
         const houseRoommates = roommates.filter((r) => r.houseId === houseId);
         if (houseRoommates.length === 0) return;
 
@@ -1253,6 +1279,129 @@ export const useBorrowStore = create<BorrowState>()(
           if (a.expiresAt && new Date(a.expiresAt) < now) return false;
           return !a.readBy.includes(roommateId);
         }).length;
+      },
+
+      setShowWishModal: (show) => set({ showWishModal: show }),
+
+      setShowWishDetailModal: (show) => set({ showWishDetailModal: show }),
+
+      setSelectedWish: (wish) => set({ selectedWish: wish }),
+
+      setWishFilter: (filter) => set({ wishFilter: filter }),
+
+      addWish: (wish) => {
+        const now = new Date().toISOString();
+        const newWish: Wish = {
+          ...wish,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ wishes: [newWish, ...state.wishes] }));
+      },
+
+      updateWish: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          wishes: state.wishes.map((w) =>
+            w.id === id ? { ...w, ...updates, updatedAt: now } : w
+          ),
+        }));
+      },
+
+      deleteWish: (id) => {
+        set((state) => ({
+          wishes: state.wishes.filter((w) => w.id !== id),
+        }));
+      },
+
+      lendWish: (wishId, lenderId, lenderName, lenderAvatar, note) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          wishes: state.wishes.map((w) =>
+            w.id === wishId
+              ? {
+                  ...w,
+                  lenderId,
+                  lenderName,
+                  lenderAvatar,
+                  status: 'fulfilled',
+                  note: note || w.note,
+                  fulfilledAt: now,
+                  updatedAt: now,
+                }
+              : w
+          ),
+        }));
+      },
+
+      fulfillWish: (wishId, note) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          wishes: state.wishes.map((w) =>
+            w.id === wishId
+              ? {
+                  ...w,
+                  status: 'fulfilled',
+                  note: note || w.note,
+                  fulfilledAt: now,
+                  updatedAt: now,
+                }
+              : w
+          ),
+        }));
+      },
+
+      archiveWish: (wishId) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          wishes: state.wishes.map((w) =>
+            w.id === wishId
+              ? {
+                  ...w,
+                  status: 'archived',
+                  archivedAt: now,
+                  updatedAt: now,
+                }
+              : w
+          ),
+        }));
+      },
+
+      getWishes: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .wishes.filter((w) => w.houseId === houseId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getWishesByStatus: (status) => {
+        const houseId = get().currentHouseId;
+        let filtered = get().wishes.filter((w) => w.houseId === houseId);
+        if (status !== 'all') {
+          filtered = filtered.filter((w) => w.status === status);
+        }
+        return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getActiveWishes: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .wishes.filter((w) => w.houseId === houseId && w.status === 'active')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getWishStats: () => {
+        const houseId = get().currentHouseId;
+        const wishes = get().wishes.filter((w) => w.houseId === houseId);
+        return {
+          total: wishes.length,
+          active: wishes.filter((w) => w.status === 'active').length,
+          fulfilled: wishes.filter((w) => w.status === 'fulfilled').length,
+          archived: wishes.filter((w) => w.status === 'archived').length,
+        };
       },
     }),
     {

@@ -228,3 +228,35 @@ export interface Announcement {
   createdAt: string;
   expiresAt?: string;
 }
+
+export type WishStatus = 'active' | 'fulfilled' | 'archived';
+
+export interface Wish {
+  id: string;
+  houseId: string;
+  title: string;
+  description: string;
+  emoji: string;
+  requesterId: string;
+  requesterName: string;
+  requesterAvatar: string;
+  lenderId?: string;
+  lenderName?: string;
+  lenderAvatar?: string;
+  status: WishStatus;
+  expectedReturnDays?: number;
+  note?: string;
+  fulfilledAt?: string;
+  archivedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WishLendOffer {
+  wishId: string;
+  lenderId: string;
+  lenderName: string;
+  lenderAvatar: string;
+  note?: string;
+  createdAt: string;
+}

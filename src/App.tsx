@@ -3,6 +3,7 @@ import Home from "@/pages/Home";
 import Statistics from "@/pages/Statistics";
 import Bills from "@/pages/Bills";
 import ChoreSchedule from "@/pages/ChoreSchedule";
+import WishList from "@/pages/WishList";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/statistics" element={<Statistics />} />
         <Route path="/bills" element={<Bills />} />
         <Route path="/chores" element={<ChoreSchedule />} />
+        <Route path="/wishes" element={<WishList />} />
       </Routes>
     </Router>
   );

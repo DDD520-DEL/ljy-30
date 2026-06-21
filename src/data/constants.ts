@@ -124,3 +124,45 @@ export const CHORE_EMPTY_MESSAGES = {
     { emoji: '✨', text: '点击任务卡片分配值日吧' },
   ],
 };
+
+export const WISH_EMOJIS = [
+  '📚', '✂️', '🔋', '☂️', '🧴', '🎧', '🖱️', '⌨️',
+  '💨', '📦', '🚲', '🎮', '📷', '🎸', '⚽', '🏀',
+  '🎨', '🔧', '🪓', '🧰', '💡', '🔦', '🧹', '🪣',
+  '🍳', '🥘', '🍽️', '🥤', '🧃', '🌱', '🪴', '🌸',
+];
+
+export const WISH_RETURN_OPTIONS = [
+  { label: '用完即还', days: 0 },
+  { label: '1天内', days: 1 },
+  { label: '3天内', days: 3 },
+  { label: '1周内', days: 7 },
+  { label: '2周内', days: 14 },
+  { label: '1个月内', days: 30 },
+];
+
+export const WISH_FILTER_OPTIONS = [
+  { key: 'all', label: '全部', emoji: '📋' },
+  { key: 'active', label: '待借出', emoji: '🎯' },
+  { key: 'fulfilled', label: '已借出', emoji: '✅' },
+  { key: 'archived', label: '已归档', emoji: '📦' },
+];
+
+export const WISH_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '🌟', text: '还没有心愿，快来发布第一个吧~' },
+    { emoji: '🎯', text: '室友们都很佛系，暂无心愿' },
+  ],
+  active: [
+    { emoji: '✅', text: '太棒了！所有心愿都已实现' },
+    { emoji: '🎊', text: '暂无待借出的心愿' },
+  ],
+  fulfilled: [
+    { emoji: '📭', text: '还没有已实现的心愿' },
+    { emoji: '💪', text: '加油，让更多心愿实现吧！' },
+  ],
+  archived: [
+    { emoji: '📦', text: '归档区空空如也' },
+    { emoji: '🪶', text: '还没有已完成归档的心愿' },
+  ],
+};
