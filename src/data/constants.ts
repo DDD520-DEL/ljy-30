@@ -1,4 +1,4 @@
-import type { ItemOption, BillCategoryOption, ChoreTaskOption } from '@/types';
+import type { ItemOption, BillCategoryOption, ChoreTaskOption, MaintenanceFilterOption, MaintenanceItemOption } from '@/types';
 
 export const COMMON_ITEMS: ItemOption[] = [
   { name: '洗衣液', emoji: '🧴' },
@@ -218,3 +218,44 @@ export const POLL_PRESET_TOPICS = [
   { title: '公共区域多久打扫一次？', emoji: '🧹', options: ['每天', '每周2次', '每周1次', '脏了再扫'] },
   { title: '要不要装路由器？', emoji: '📶', options: ['同意', '不同意', '用各自的就行'] },
 ];
+
+export const MAINTENANCE_ITEMS: MaintenanceItemOption[] = [
+  { name: '洗衣机', emoji: '🧺' },
+  { name: '微波炉', emoji: '🔥' },
+  { name: '冰箱', emoji: '🧊' },
+  { name: '空调', emoji: '❄️' },
+  { name: '热水器', emoji: '🚿' },
+  { name: '油烟机', emoji: '💨' },
+  { name: '燃气灶', emoji: '🍳' },
+  { name: '马桶', emoji: '🚽' },
+  { name: '电灯', emoji: '💡' },
+  { name: '门锁', emoji: '🔐' },
+  { name: '水龙头', emoji: '🚰' },
+  { name: '其他', emoji: '🔧' },
+];
+
+export const MAINTENANCE_FILTER_OPTIONS: MaintenanceFilterOption[] = [
+  { key: 'all', label: '全部', emoji: '📋' },
+  { key: 'pending', label: '待处理', emoji: '⏳' },
+  { key: 'repairing', label: '维修中', emoji: '🔧' },
+  { key: 'completed', label: '已修好', emoji: '✅' },
+];
+
+export const MAINTENANCE_EMPTY_MESSAGES = {
+  all: [
+    { emoji: '🔧', text: '还没有维修记录，一切正常~' },
+    { emoji: '🏠', text: '公共物品都运行良好' },
+  ],
+  pending: [
+    { emoji: '✅', text: '太棒了！没有待处理的报修' },
+    { emoji: '✨', text: '所有问题都已处理完毕' },
+  ],
+  repairing: [
+    { emoji: '💪', text: '当前没有正在维修的物品' },
+    { emoji: '🎯', text: '维修效率很高嘛~' },
+  ],
+  completed: [
+    { emoji: '📭', text: '还没有已完成的维修记录' },
+    { emoji: '🆕', text: '第一次维修记录等待诞生' },
+  ],
+};

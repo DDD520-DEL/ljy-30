@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement, Wish, WishStatus, Poll, PollVote, PollStatus, MaintenanceRecord, MaintenanceStatus } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS, MOCK_WISHES, MOCK_POLLS, MOCK_POLL_VOTES, MOCK_MAINTENANCE_RECORDS } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
@@ -195,6 +195,27 @@ interface BorrowState {
   getVotesByPollId: (pollId: string) => PollVote[];
   getVoteByPollAndRoommate: (pollId: string, roommateId: string) => PollVote | undefined;
   getPollStats: () => { total: number; active: number; ended: number; archived: number };
+
+  maintenanceRecords: MaintenanceRecord[];
+  showAddMaintenanceModal: boolean;
+  showMaintenanceDetailModal: boolean;
+  selectedMaintenance: MaintenanceRecord | null;
+  maintenanceFilter: MaintenanceStatus | 'all';
+
+  setShowAddMaintenanceModal: (show: boolean) => void;
+  setShowMaintenanceDetailModal: (show: boolean) => void;
+  setSelectedMaintenance: (record: MaintenanceRecord | null) => void;
+  setMaintenanceFilter: (filter: MaintenanceStatus | 'all') => void;
+
+  addMaintenanceRecord: (record: Omit<MaintenanceRecord, 'id' | 'houseId' | 'status' | 'reportedAt' | 'createdAt' | 'updatedAt'>) => void;
+  updateMaintenanceRecord: (id: string, updates: Partial<MaintenanceRecord>) => void;
+  deleteMaintenanceRecord: (id: string) => void;
+  startMaintenance: (id: string, repairerId: string, repairerName: string, repairerAvatar: string) => void;
+  completeMaintenance: (id: string, cost: number, repairNote: string) => void;
+
+  getMaintenanceRecords: () => MaintenanceRecord[];
+  getMaintenanceRecordsByStatus: (status: MaintenanceStatus | 'all') => MaintenanceRecord[];
+  getMaintenanceStats: () => { total: number; pending: number; repairing: number; completed: number; totalCost: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -246,6 +267,11 @@ export const useBorrowStore = create<BorrowState>()(
       selectedPoll: null,
       pollFilter: 'all',
       pollRoommateId: null,
+      maintenanceRecords: MOCK_MAINTENANCE_RECORDS,
+      showAddMaintenanceModal: false,
+      showMaintenanceDetailModal: false,
+      selectedMaintenance: null,
+      maintenanceFilter: 'all',
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -323,6 +349,7 @@ export const useBorrowStore = create<BorrowState>()(
             const poll = state.polls.find((p) => p.id === v.pollId);
             return poll && poll.houseId === houseId ? false : true;
           }),
+          maintenanceRecords: state.maintenanceRecords.filter((r) => r.houseId !== houseId),
         }));
       },
 
@@ -1594,6 +1621,125 @@ export const useBorrowStore = create<BorrowState>()(
           active: polls.filter((p) => p.status === 'active').length,
           ended: polls.filter((p) => p.status === 'ended').length,
           archived: polls.filter((p) => p.status === 'archived').length,
+        };
+      },
+
+      setShowAddMaintenanceModal: (show) => set({ showAddMaintenanceModal: show }),
+
+      setShowMaintenanceDetailModal: (show) => set({ showMaintenanceDetailModal: show }),
+
+      setSelectedMaintenance: (record) => set({ selectedMaintenance: record }),
+
+      setMaintenanceFilter: (filter) => set({ maintenanceFilter: filter }),
+
+      addMaintenanceRecord: (record) => {
+        const now = new Date().toISOString();
+        const newRecord: MaintenanceRecord = {
+          ...record,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          status: 'pending',
+          reportedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ maintenanceRecords: [newRecord, ...state.maintenanceRecords] }));
+      },
+
+      updateMaintenanceRecord: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          maintenanceRecords: state.maintenanceRecords.map((r) =>
+            r.id === id ? { ...r, ...updates, updatedAt: now } : r
+          ),
+        }));
+      },
+
+      deleteMaintenanceRecord: (id) => {
+        set((state) => ({
+          maintenanceRecords: state.maintenanceRecords.filter((r) => r.id !== id),
+        }));
+      },
+
+      startMaintenance: (id, repairerId, repairerName, repairerAvatar) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          maintenanceRecords: state.maintenanceRecords.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'repairing',
+                  repairerId,
+                  repairerName,
+                  repairerAvatar,
+                  startedAt: now,
+                  updatedAt: now,
+                }
+              : r
+          ),
+        }));
+      },
+
+      completeMaintenance: (id, cost, repairNote) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          maintenanceRecords: state.maintenanceRecords.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: 'completed',
+                  cost,
+                  repairNote,
+                  completedAt: now,
+                  updatedAt: now,
+                }
+              : r
+          ),
+        }));
+      },
+
+      getMaintenanceRecords: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .maintenanceRecords.filter((r) => r.houseId === houseId)
+          .sort((a, b) => {
+            const statusOrder = { pending: 0, repairing: 1, completed: 2 };
+            if (statusOrder[a.status] !== statusOrder[b.status]) {
+              return statusOrder[a.status] - statusOrder[b.status];
+            }
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+      },
+
+      getMaintenanceRecordsByStatus: (status) => {
+        const houseId = get().currentHouseId;
+        let filtered = get().maintenanceRecords.filter((r) => r.houseId === houseId);
+        if (status !== 'all') {
+          filtered = filtered.filter((r) => r.status === status);
+        }
+        return filtered.sort((a, b) => {
+          const statusOrder = { pending: 0, repairing: 1, completed: 2 };
+          if (status !== 'all') {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+          if (statusOrder[a.status] !== statusOrder[b.status]) {
+            return statusOrder[a.status] - statusOrder[b.status];
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      },
+
+      getMaintenanceStats: () => {
+        const houseId = get().currentHouseId;
+        const records = get().maintenanceRecords.filter((r) => r.houseId === houseId);
+        const completed = records.filter((r) => r.status === 'completed');
+        const totalCost = completed.reduce((sum, r) => sum + (r.cost || 0), 0);
+        return {
+          total: records.length,
+          pending: records.filter((r) => r.status === 'pending').length,
+          repairing: records.filter((r) => r.status === 'repairing').length,
+          completed: completed.length,
+          totalCost,
         };
       },
     }),

@@ -5,6 +5,7 @@ import Bills from "@/pages/Bills";
 import ChoreSchedule from "@/pages/ChoreSchedule";
 import WishList from "@/pages/WishList";
 import Voting from "@/pages/Voting";
+import Maintenance from "@/pages/Maintenance";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/chores" element={<ChoreSchedule />} />
         <Route path="/wishes" element={<WishList />} />
         <Route path="/voting" element={<Voting />} />
+        <Route path="/maintenance" element={<Maintenance />} />
       </Routes>
     </Router>
   );

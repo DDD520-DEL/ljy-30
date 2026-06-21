@@ -306,3 +306,38 @@ export interface PollFilterOption {
   label: string;
   emoji: string;
 }
+
+export type MaintenanceStatus = 'pending' | 'repairing' | 'completed';
+
+export interface MaintenanceRecord {
+  id: string;
+  houseId: string;
+  itemName: string;
+  itemEmoji: string;
+  description: string;
+  reporterId: string;
+  reporterName: string;
+  reporterAvatar: string;
+  status: MaintenanceStatus;
+  repairerId?: string;
+  repairerName?: string;
+  repairerAvatar?: string;
+  cost?: number;
+  repairNote?: string;
+  reportedAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaintenanceFilterOption {
+  key: MaintenanceStatus | 'all';
+  label: string;
+  emoji: string;
+}
+
+export interface MaintenanceItemOption {
+  name: string;
+  emoji: string;
+}

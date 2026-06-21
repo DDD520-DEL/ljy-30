@@ -1,8 +1,8 @@
-import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES, WISH_EMPTY_MESSAGES, POLL_EMPTY_MESSAGES, MAINTENANCE_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments' | 'wish-all' | 'wish-active' | 'wish-fulfilled' | 'wish-archived' | 'poll-all' | 'poll-active' | 'poll-ended' | 'poll-archived' | 'maintenance-all' | 'maintenance-pending' | 'maintenance-repairing' | 'maintenance-completed';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
@@ -28,6 +28,14 @@ export function EmptyState({ type = 'active' }: EmptyStateProps) {
       messages = POLL_EMPTY_MESSAGES.ended;
     } else if (type === 'poll-archived') {
       messages = POLL_EMPTY_MESSAGES.archived;
+    } else if (type === 'maintenance-all') {
+      messages = MAINTENANCE_EMPTY_MESSAGES.all;
+    } else if (type === 'maintenance-pending') {
+      messages = MAINTENANCE_EMPTY_MESSAGES.pending;
+    } else if (type === 'maintenance-repairing') {
+      messages = MAINTENANCE_EMPTY_MESSAGES.repairing;
+    } else if (type === 'maintenance-completed') {
+      messages = MAINTENANCE_EMPTY_MESSAGES.completed;
     } else {
       messages = EMPTY_MESSAGES[type];
     }
