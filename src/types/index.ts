@@ -171,3 +171,47 @@ export interface BillCategoryOption {
   name: string;
   emoji: string;
 }
+
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface ChoreTask {
+  id: string;
+  houseId: string;
+  name: string;
+  emoji: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChoreAssignment {
+  id: string;
+  houseId: string;
+  taskId: string;
+  taskName: string;
+  taskEmoji: string;
+  dayOfWeek: DayOfWeek;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  roommateColor: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChoreRotation {
+  id: string;
+  houseId: string;
+  taskId: string;
+  enabled: boolean;
+  startDate: string;
+  currentOffset: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChoreTaskOption {
+  name: string;
+  emoji: string;
+  description: string;
+}

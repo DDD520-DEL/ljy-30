@@ -1,13 +1,20 @@
-import { EMPTY_MESSAGES } from '@/data/constants';
+import { EMPTY_MESSAGES, CHORE_EMPTY_MESSAGES } from '@/data/constants';
 import { useMemo } from 'react';
 
 interface EmptyStateProps {
-  type?: 'active' | 'history' | 'overdue' | 'search';
+  type?: 'active' | 'history' | 'overdue' | 'search' | 'no-tasks' | 'no-assignments';
 }
 
 export function EmptyState({ type = 'active' }: EmptyStateProps) {
   const message = useMemo(() => {
-    const messages = EMPTY_MESSAGES[type];
+    let messages;
+    if (type === 'no-tasks') {
+      messages = CHORE_EMPTY_MESSAGES.noTasks;
+    } else if (type === 'no-assignments') {
+      messages = CHORE_EMPTY_MESSAGES.noAssignments;
+    } else {
+      messages = EMPTY_MESSAGES[type];
+    }
     return messages[Math.floor(Math.random() * messages.length)];
   }, [type]);
 

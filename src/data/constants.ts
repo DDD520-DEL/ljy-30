@@ -1,4 +1,4 @@
-import type { ItemOption, BillCategoryOption } from '@/types';
+import type { ItemOption, BillCategoryOption, ChoreTaskOption } from '@/types';
 
 export const COMMON_ITEMS: ItemOption[] = [
   { name: '洗衣液', emoji: '🧴' },
@@ -88,5 +88,39 @@ export const BILL_EMPTY_MESSAGES = {
   settled: [
     { emoji: '📜', text: '还没有已结算的账单' },
     { emoji: '🪶', text: '历史账单空空如也' },
+  ],
+};
+
+export const CHORE_TASK_OPTIONS: ChoreTaskOption[] = [
+  { name: '扫地', emoji: '🧹', description: '打扫客厅和卧室地面' },
+  { name: '拖地', emoji: '🪣', description: '用拖把清洁地面' },
+  { name: '倒垃圾', emoji: '🗑️', description: '倒掉所有垃圾桶并更换垃圾袋' },
+  { name: '擦厨房', emoji: '🍳', description: '擦拭灶台、台面和油烟机' },
+  { name: '洗碗', emoji: '🍽️', description: '清洗所有餐具并擦干归位' },
+  { name: '擦桌子', emoji: '🪑', description: '擦拭餐桌和书桌' },
+  { name: '浇花', emoji: '🪴', description: '给所有植物浇水' },
+  { name: '整理客厅', emoji: '🛋️', description: '整理沙发、抱枕和杂物' },
+  { name: '卫生间清洁', emoji: '🚽', description: '清洁马桶、洗手台和地面' },
+  { name: '扔快递盒', emoji: '📦', description: '整理并扔掉快递包装盒' },
+];
+
+export const WEEKDAYS = [
+  { key: 0, label: '周日', short: '日' },
+  { key: 1, label: '周一', short: '一' },
+  { key: 2, label: '周二', short: '二' },
+  { key: 3, label: '周三', short: '三' },
+  { key: 4, label: '周四', short: '四' },
+  { key: 5, label: '周五', short: '五' },
+  { key: 6, label: '周六', short: '六' },
+];
+
+export const CHORE_EMPTY_MESSAGES = {
+  noTasks: [
+    { emoji: '🧹', text: '还没有添加家务任务' },
+    { emoji: '🏠', text: '点击下方按钮添加第一个任务' },
+  ],
+  noAssignments: [
+    { emoji: '📅', text: '本周还没有排班安排' },
+    { emoji: '✨', text: '点击任务卡片分配值日吧' },
   ],
 };

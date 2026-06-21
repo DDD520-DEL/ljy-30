@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
@@ -102,6 +102,40 @@ interface BorrowState {
   getSettledBills: () => Bill[];
   getBillStats: () => { total: number; pending: number; settled: number; totalAmount: number; pendingAmount: number };
   calculateSettlements: () => Settlement[];
+
+  choreTasks: ChoreTask[];
+  choreAssignments: ChoreAssignment[];
+  choreRotations: ChoreRotation[];
+  showChoreTaskModal: boolean;
+  showChoreAssignModal: boolean;
+  selectedChoreTask: ChoreTask | null;
+  selectedChoreDay: DayOfWeek | null;
+
+  setShowChoreTaskModal: (show: boolean) => void;
+  setShowChoreAssignModal: (show: boolean) => void;
+  setSelectedChoreTask: (task: ChoreTask | null) => void;
+  setSelectedChoreDay: (day: DayOfWeek | null) => void;
+
+  addChoreTask: (task: Omit<ChoreTask, 'id' | 'houseId' | 'createdAt' | 'updatedAt'>) => void;
+  deleteChoreTask: (id: string) => void;
+  updateChoreTask: (id: string, updates: Partial<ChoreTask>) => void;
+  getChoreTasks: () => ChoreTask[];
+
+  addChoreAssignment: (assignment: Omit<ChoreAssignment, 'id' | 'houseId' | 'createdAt' | 'updatedAt'>) => void;
+  deleteChoreAssignment: (id: string) => void;
+  updateChoreAssignment: (id: string, updates: Partial<ChoreAssignment>) => void;
+  getChoreAssignments: () => ChoreAssignment[];
+  getChoreAssignmentsByTask: (taskId: string) => ChoreAssignment[];
+  getChoreAssignmentsByDay: (dayOfWeek: DayOfWeek) => ChoreAssignment[];
+  getTodayChoreAssignments: () => ChoreAssignment[];
+
+  addChoreRotation: (rotation: Omit<ChoreRotation, 'id' | 'houseId' | 'createdAt' | 'updatedAt' | 'currentOffset'>) => void;
+  deleteChoreRotation: (id: string) => void;
+  updateChoreRotation: (id: string, updates: Partial<ChoreRotation>) => void;
+  getChoreRotations: () => ChoreRotation[];
+  toggleChoreRotation: (taskId: string) => void;
+  rotateChores: () => void;
+  getChoreStats: () => { totalTasks: number; totalAssignments: number; todayAssignments: number; activeRotations: number };
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -131,6 +165,13 @@ export const useBorrowStore = create<BorrowState>()(
       templates: [],
       bills: [],
       billFilter: 'all',
+      choreTasks: MOCK_CHORE_TASKS,
+      choreAssignments: MOCK_CHORE_ASSIGNMENTS,
+      choreRotations: MOCK_CHORE_ROTATIONS,
+      showChoreTaskModal: false,
+      showChoreAssignModal: false,
+      selectedChoreTask: null,
+      selectedChoreDay: null,
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -197,6 +238,9 @@ export const useBorrowStore = create<BorrowState>()(
           inventory: state.inventory.filter((i) => i.houseId !== houseId),
           templates: state.templates.filter((t) => t.houseId !== houseId),
           bills: state.bills.filter((b) => b.houseId !== houseId),
+          choreTasks: state.choreTasks.filter((t) => t.houseId !== houseId),
+          choreAssignments: state.choreAssignments.filter((a) => a.houseId !== houseId),
+          choreRotations: state.choreRotations.filter((r) => r.houseId !== houseId),
         }));
       },
 
@@ -901,6 +945,223 @@ export const useBorrowStore = create<BorrowState>()(
         }
 
         return settlements;
+      },
+
+      setShowChoreTaskModal: (show) => set({ showChoreTaskModal: show }),
+      setShowChoreAssignModal: (show) => set({ showChoreAssignModal: show }),
+      setSelectedChoreTask: (task) => set({ selectedChoreTask: task }),
+      setSelectedChoreDay: (day) => set({ selectedChoreDay: day }),
+
+      addChoreTask: (task) => {
+        const now = new Date().toISOString();
+        const newTask: ChoreTask = {
+          ...task,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ choreTasks: [...state.choreTasks, newTask] }));
+      },
+
+      deleteChoreTask: (id) => {
+        set((state) => ({
+          choreTasks: state.choreTasks.filter((t) => t.id !== id),
+          choreAssignments: state.choreAssignments.filter((a) => a.taskId !== id),
+          choreRotations: state.choreRotations.filter((r) => r.taskId !== id),
+        }));
+      },
+
+      updateChoreTask: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          choreTasks: state.choreTasks.map((t) =>
+            t.id === id ? { ...t, ...updates, updatedAt: now } : t
+          ),
+        }));
+      },
+
+      getChoreTasks: () => {
+        const houseId = get().currentHouseId;
+        return get().choreTasks.filter((t) => t.houseId === houseId);
+      },
+
+      addChoreAssignment: (assignment) => {
+        const now = new Date().toISOString();
+        const newAssignment: ChoreAssignment = {
+          ...assignment,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ choreAssignments: [...state.choreAssignments, newAssignment] }));
+      },
+
+      deleteChoreAssignment: (id) => {
+        set((state) => ({
+          choreAssignments: state.choreAssignments.filter((a) => a.id !== id),
+        }));
+      },
+
+      updateChoreAssignment: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          choreAssignments: state.choreAssignments.map((a) =>
+            a.id === id ? { ...a, ...updates, updatedAt: now } : a
+          ),
+        }));
+      },
+
+      getChoreAssignments: () => {
+        const houseId = get().currentHouseId;
+        return get().choreAssignments.filter((a) => a.houseId === houseId);
+      },
+
+      getChoreAssignmentsByTask: (taskId) => {
+        const houseId = get().currentHouseId;
+        return get().choreAssignments.filter((a) => a.houseId === houseId && a.taskId === taskId);
+      },
+
+      getChoreAssignmentsByDay: (dayOfWeek) => {
+        const houseId = get().currentHouseId;
+        return get().choreAssignments.filter((a) => a.houseId === houseId && a.dayOfWeek === dayOfWeek);
+      },
+
+      getTodayChoreAssignments: () => {
+        const today = new Date().getDay() as DayOfWeek;
+        return get().getChoreAssignmentsByDay(today);
+      },
+
+      addChoreRotation: (rotation) => {
+        const now = new Date().toISOString();
+        const newRotation: ChoreRotation = {
+          ...rotation,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          currentOffset: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ choreRotations: [...state.choreRotations, newRotation] }));
+      },
+
+      deleteChoreRotation: (id) => {
+        set((state) => ({
+          choreRotations: state.choreRotations.filter((r) => r.id !== id),
+        }));
+      },
+
+      updateChoreRotation: (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          choreRotations: state.choreRotations.map((r) =>
+            r.id === id ? { ...r, ...updates, updatedAt: now } : r
+          ),
+        }));
+      },
+
+      getChoreRotations: () => {
+        const houseId = get().currentHouseId;
+        return get().choreRotations.filter((r) => r.houseId === houseId);
+      },
+
+      toggleChoreRotation: (taskId) => {
+        const houseId = get().currentHouseId;
+        const now = new Date().toISOString();
+        set((state) => {
+          const rotation = state.choreRotations.find((r) => r.houseId === houseId && r.taskId === taskId);
+          if (rotation) {
+            return {
+              choreRotations: state.choreRotations.map((r) =>
+                r.id === rotation.id ? { ...r, enabled: !r.enabled, updatedAt: now } : r
+              ),
+            };
+          } else {
+            const newRotation: ChoreRotation = {
+              id: generateId(),
+              houseId,
+              taskId,
+              enabled: true,
+              startDate: now,
+              currentOffset: 0,
+              createdAt: now,
+              updatedAt: now,
+            };
+            return {
+              choreRotations: [...state.choreRotations, newRotation],
+            };
+          }
+        });
+      },
+
+      rotateChores: () => {
+        const houseId = get().currentHouseId;
+        const { roommates, choreAssignments, choreRotations } = get();
+        const houseRoommates = roommates.filter((r) => r.houseId === houseId);
+        if (houseRoommates.length === 0) return;
+
+        const now = new Date().toISOString();
+        const activeRotations = choreRotations.filter((r) => r.houseId === houseId && r.enabled);
+
+        set((state) => {
+          const updatedAssignments = [...state.choreAssignments];
+          const updatedRotations = [...state.choreRotations];
+
+          activeRotations.forEach((rotation) => {
+            const taskAssignments = updatedAssignments.filter(
+              (a) => a.houseId === houseId && a.taskId === rotation.taskId
+            );
+
+            taskAssignments.forEach((assignment) => {
+              const currentIndex = houseRoommates.findIndex((r) => r.id === assignment.roommateId);
+              const nextIndex = (currentIndex + 1) % houseRoommates.length;
+              const nextRoommate = houseRoommates[nextIndex];
+
+              const assignmentIndex = updatedAssignments.findIndex((a) => a.id === assignment.id);
+              if (assignmentIndex !== -1) {
+                updatedAssignments[assignmentIndex] = {
+                  ...updatedAssignments[assignmentIndex],
+                  roommateId: nextRoommate.id,
+                  roommateName: nextRoommate.name,
+                  roommateAvatar: nextRoommate.avatar,
+                  roommateColor: nextRoommate.color,
+                  updatedAt: now,
+                };
+              }
+            });
+
+            const rotationIndex = updatedRotations.findIndex((r) => r.id === rotation.id);
+            if (rotationIndex !== -1) {
+              updatedRotations[rotationIndex] = {
+                ...updatedRotations[rotationIndex],
+                currentOffset: updatedRotations[rotationIndex].currentOffset + 1,
+                updatedAt: now,
+              };
+            }
+          });
+
+          return {
+            choreAssignments: updatedAssignments,
+            choreRotations: updatedRotations,
+          };
+        });
+      },
+
+      getChoreStats: () => {
+        const houseId = get().currentHouseId;
+        const tasks = get().choreTasks.filter((t) => t.houseId === houseId);
+        const assignments = get().choreAssignments.filter((a) => a.houseId === houseId);
+        const rotations = get().choreRotations.filter((r) => r.houseId === houseId && r.enabled);
+        const today = new Date().getDay() as DayOfWeek;
+        const todayAssignments = assignments.filter((a) => a.dayOfWeek === today);
+
+        return {
+          totalTasks: tasks.length,
+          totalAssignments: assignments.length,
+          todayAssignments: todayAssignments.length,
+          activeRotations: rotations.length,
+        };
       },
     }),
     {
