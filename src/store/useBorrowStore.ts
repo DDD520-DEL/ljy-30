@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek } from '@/types';
-import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS } from '@/data/mockData';
+import type { House, BorrowRecord, Roommate, FilterType, BorrowStatus, SortType, SortOrder, InventoryItem, CompensationRecord, CompensationStatus, Comment, BorrowTemplate, Bill, BillStatus, Settlement, ChoreTask, ChoreAssignment, ChoreRotation, DayOfWeek, Announcement } from '@/types';
+import { MOCK_HOUSES, MOCK_RECORDS, MOCK_ROOMMATES, MOCK_INVENTORY, DEFAULT_HOUSE_ID, MOCK_CHORE_TASKS, MOCK_CHORE_ASSIGNMENTS, MOCK_CHORE_ROTATIONS, MOCK_ANNOUNCEMENTS } from '@/data/mockData';
 import { isOverdue, isToday } from '@/utils/date';
 
 interface BorrowState {
@@ -136,6 +136,17 @@ interface BorrowState {
   toggleChoreRotation: (taskId: string) => void;
   rotateChores: () => void;
   getChoreStats: () => { totalTasks: number; totalAssignments: number; todayAssignments: number; activeRotations: number };
+
+  announcements: Announcement[];
+  showAnnouncementModal: boolean;
+  setShowAnnouncementModal: (show: boolean) => void;
+  addAnnouncement: (announcement: Omit<Announcement, 'id' | 'houseId' | 'createdAt' | 'readBy'>) => void;
+  deleteAnnouncement: (id: string) => void;
+  markAnnouncementRead: (id: string, roommateId: string) => void;
+  markAllAnnouncementsRead: (roommateId: string) => void;
+  getAnnouncements: () => Announcement[];
+  getActiveAnnouncements: () => Announcement[];
+  getUnreadAnnouncementCount: (roommateId: string) => number;
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -172,6 +183,8 @@ export const useBorrowStore = create<BorrowState>()(
       showChoreAssignModal: false,
       selectedChoreTask: null,
       selectedChoreDay: null,
+      announcements: MOCK_ANNOUNCEMENTS,
+      showAnnouncementModal: false,
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -241,6 +254,7 @@ export const useBorrowStore = create<BorrowState>()(
           choreTasks: state.choreTasks.filter((t) => t.houseId !== houseId),
           choreAssignments: state.choreAssignments.filter((a) => a.houseId !== houseId),
           choreRotations: state.choreRotations.filter((r) => r.houseId !== houseId),
+          announcements: state.announcements.filter((a) => a.houseId !== houseId),
         }));
       },
 
@@ -1162,6 +1176,77 @@ export const useBorrowStore = create<BorrowState>()(
           todayAssignments: todayAssignments.length,
           activeRotations: rotations.length,
         };
+      },
+
+      setShowAnnouncementModal: (show) => set({ showAnnouncementModal: show }),
+
+      addAnnouncement: (announcement) => {
+        const now = new Date().toISOString();
+        const newAnnouncement: Announcement = {
+          ...announcement,
+          id: generateId(),
+          houseId: get().currentHouseId,
+          readBy: [],
+          createdAt: now,
+        };
+        set((state) => ({ announcements: [newAnnouncement, ...state.announcements] }));
+      },
+
+      deleteAnnouncement: (id) => {
+        set((state) => ({
+          announcements: state.announcements.filter((a) => a.id !== id),
+        }));
+      },
+
+      markAnnouncementRead: (id, roommateId) => {
+        set((state) => ({
+          announcements: state.announcements.map((a) => {
+            if (a.id === id && !a.readBy.includes(roommateId)) {
+              return { ...a, readBy: [...a.readBy, roommateId] };
+            }
+            return a;
+          }),
+        }));
+      },
+
+      markAllAnnouncementsRead: (roommateId) => {
+        set((state) => ({
+          announcements: state.announcements.map((a) => {
+            if (a.houseId === state.currentHouseId && !a.readBy.includes(roommateId)) {
+              return { ...a, readBy: [...a.readBy, roommateId] };
+            }
+            return a;
+          }),
+        }));
+      },
+
+      getAnnouncements: () => {
+        const houseId = get().currentHouseId;
+        return get()
+          .announcements.filter((a) => a.houseId === houseId)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getActiveAnnouncements: () => {
+        const houseId = get().currentHouseId;
+        const now = new Date();
+        return get()
+          .announcements.filter((a) => {
+            if (a.houseId !== houseId) return false;
+            if (a.expiresAt && new Date(a.expiresAt) < now) return false;
+            return true;
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+
+      getUnreadAnnouncementCount: (roommateId) => {
+        const houseId = get().currentHouseId;
+        const now = new Date();
+        return get().announcements.filter((a) => {
+          if (a.houseId !== houseId) return false;
+          if (a.expiresAt && new Date(a.expiresAt) < now) return false;
+          return !a.readBy.includes(roommateId);
+        }).length;
       },
     }),
     {

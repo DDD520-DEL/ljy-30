@@ -15,6 +15,8 @@ import { CompensationModal } from '@/components/CompensationModal';
 import { ReturnReminderBanner } from '@/components/ReturnReminderBanner';
 import { LowStockBanner } from '@/components/LowStockBanner';
 import { ChoreReminderBanner } from '@/components/ChoreReminderBanner';
+import { AnnouncementMarquee } from '@/components/AnnouncementMarquee';
+import { AnnouncementModal } from '@/components/AnnouncementModal';
 import { TabBar } from '@/components/TabBar';
 import { useNotification } from '@/hooks/useNotification';
 import { Plus, ChevronDown, ChevronUp, Package, Download, Upload } from 'lucide-react';
@@ -32,6 +34,8 @@ export default function Home() {
     setShowInventoryModal,
     showHouseModal,
     setShowHouseModal,
+    showAnnouncementModal,
+    setShowAnnouncementModal,
     returnRecord,
     filter,
     searchQuery,
@@ -140,6 +144,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-cream">
       <div className="max-w-md mx-auto bg-cream min-h-screen relative pb-24">
+        <AnnouncementMarquee onOpenAnnouncementModal={() => setShowAnnouncementModal(true)} />
         <ReturnReminderBanner onItemClick={(record) => openRecordDetail(record)} />
         <ChoreReminderBanner />
         <Header />
@@ -292,6 +297,11 @@ export default function Home() {
       <HouseModal
         isOpen={showHouseModal}
         onClose={() => setShowHouseModal(false)}
+      />
+
+      <AnnouncementModal
+        isOpen={showAnnouncementModal}
+        onClose={() => setShowAnnouncementModal(false)}
       />
 
       <Celebration trigger={celebrate} onComplete={() => setCelebrate(false)} />

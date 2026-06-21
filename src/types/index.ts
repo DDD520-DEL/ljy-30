@@ -215,3 +215,16 @@ export interface ChoreTaskOption {
   emoji: string;
   description: string;
 }
+
+export interface Announcement {
+  id: string;
+  houseId: string;
+  content: string;
+  roommateId: string;
+  roommateName: string;
+  roommateAvatar: string;
+  emoji?: string;
+  readBy: string[];
+  createdAt: string;
+  expiresAt?: string;
+}

@@ -1,4 +1,4 @@
-import type { House, Roommate, BorrowRecord, InventoryItem, ChoreTask, ChoreAssignment, ChoreRotation } from '@/types';
+import type { House, Roommate, BorrowRecord, InventoryItem, ChoreTask, ChoreAssignment, ChoreRotation, Announcement } from '@/types';
 
 const now = new Date();
 const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -600,5 +600,44 @@ export const MOCK_CHORE_ROTATIONS: ChoreRotation[] = [
     currentOffset: 0,
     createdAt: threeDaysAgo.toISOString(),
     updatedAt: threeDaysAgo.toISOString(),
+  },
+];
+
+export const MOCK_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'a1',
+    houseId: 'h1',
+    content: '今晚有朋友来访，可能会有些吵，请大家见谅~',
+    roommateId: 'r1',
+    roommateName: '小明',
+    roommateAvatar: '🐱',
+    emoji: '🎉',
+    readBy: ['r2', 'r3'],
+    createdAt: oneDayAgo.toISOString(),
+    expiresAt: oneDayLater.toISOString(),
+  },
+  {
+    id: 'a2',
+    houseId: 'h1',
+    content: '周末大扫除，周六上午9点开始，大家分工合作！',
+    roommateId: 'r2',
+    roommateName: '小红',
+    roommateAvatar: '🐰',
+    emoji: '🧹',
+    readBy: ['r1'],
+    createdAt: twoDaysAgo.toISOString(),
+    expiresAt: twoDaysLater.toISOString(),
+  },
+  {
+    id: 'a3',
+    houseId: 'h1',
+    content: '冰箱里的牛奶快过期了，记得喝掉哦！',
+    roommateId: 'r3',
+    roommateName: '大壮',
+    roommateAvatar: '🐻',
+    emoji: '🥛',
+    readBy: [],
+    createdAt: now.toISOString(),
+    expiresAt: oneDayLater.toISOString(),
   },
 ];
