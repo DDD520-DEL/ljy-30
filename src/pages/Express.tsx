@@ -21,18 +21,38 @@ export default function Express() {
     setShowHouseModal,
     setShowRoommateModal,
     setSelectedExpress,
-    getExpressRecordsByStatus,
-    getExpressStats,
+    expressRecords: allExpressRecords,
     currentHouseId,
   } = useBorrowStore();
 
+  const houseExpressRecords = useMemo(() => {
+    return allExpressRecords.filter((r) => r.houseId === currentHouseId);
+  }, [allExpressRecords, currentHouseId]);
+
   const expressRecords = useMemo(() => {
-    return getExpressRecordsByStatus(expressFilter);
-  }, [expressFilter, getExpressRecordsByStatus, currentHouseId]);
+    let filtered = houseExpressRecords;
+    if (expressFilter !== 'all') {
+      filtered = filtered.filter((r) => r.status === expressFilter);
+    }
+    return filtered.sort((a, b) => {
+      if (expressFilter === 'all') {
+        const statusOrder = { pending: 0, picked: 1 };
+        if (statusOrder[a.status] !== statusOrder[b.status]) {
+          return statusOrder[a.status] - statusOrder[b.status];
+        }
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [houseExpressRecords, expressFilter]);
 
   const stats = useMemo(() => {
-    return getExpressStats();
-  }, [getExpressStats, currentHouseId]);
+    const records = houseExpressRecords;
+    return {
+      total: records.length,
+      pending: records.filter((r) => r.status === 'pending').length,
+      picked: records.filter((r) => r.status === 'picked').length,
+    };
+  }, [houseExpressRecords]);
 
   const getEmptyType = () => {
     switch (expressFilter) {

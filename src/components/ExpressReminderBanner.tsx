@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { ChevronDown, ChevronUp, Package, X } from 'lucide-react';
 import type { ExpressRecord } from '@/types';
@@ -8,8 +8,12 @@ interface ExpressReminderBannerProps {
 }
 
 export function ExpressReminderBanner({ onItemClick }: ExpressReminderBannerProps) {
-  const { getExpressRecordsByStatus } = useBorrowStore();
-  const pendingExpress = getExpressRecordsByStatus('pending');
+  const { expressRecords, currentHouseId } = useBorrowStore();
+  const pendingExpress = useMemo(() => {
+    return expressRecords
+      .filter((r) => r.houseId === currentHouseId && r.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [expressRecords, currentHouseId]);
   const [expanded, setExpanded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 

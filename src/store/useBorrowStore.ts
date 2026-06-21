@@ -2016,23 +2016,31 @@ export const useBorrowStore = create<BorrowState>()(
 
       updateExpressRecord: (id, updates) => {
         const now = new Date().toISOString();
-        set((state) => ({
-          expressRecords: state.expressRecords.map((r) =>
+        set((state) => {
+          const updatedRecords = state.expressRecords.map((r) =>
             r.id === id ? { ...r, ...updates, updatedAt: now } : r
-          ),
-        }));
+          );
+          const updatedSelected = state.selectedExpress?.id === id
+            ? updatedRecords.find((r) => r.id === id) || null
+            : state.selectedExpress;
+          return {
+            expressRecords: updatedRecords,
+            selectedExpress: updatedSelected,
+          };
+        });
       },
 
       deleteExpressRecord: (id) => {
         set((state) => ({
           expressRecords: state.expressRecords.filter((r) => r.id !== id),
+          selectedExpress: state.selectedExpress?.id === id ? null : state.selectedExpress,
         }));
       },
 
       pickUpExpress: (id) => {
         const now = new Date().toISOString();
-        set((state) => ({
-          expressRecords: state.expressRecords.map((r) =>
+        set((state) => {
+          const updatedRecords = state.expressRecords.map((r) =>
             r.id === id
               ? {
                   ...r,
@@ -2041,8 +2049,15 @@ export const useBorrowStore = create<BorrowState>()(
                   updatedAt: now,
                 }
               : r
-          ),
-        }));
+          );
+          const updatedSelected = state.selectedExpress?.id === id
+            ? updatedRecords.find((r) => r.id === id) || null
+            : state.selectedExpress;
+          return {
+            expressRecords: updatedRecords,
+            selectedExpress: updatedSelected,
+          };
+        });
       },
 
       getExpressRecords: () => {

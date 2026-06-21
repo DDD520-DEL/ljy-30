@@ -1,10 +1,13 @@
+import { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, BarChart3, Wallet, Calendar, Sparkles, Vote, Wrench, Cake, Package } from 'lucide-react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 
 export function TabBar() {
-  const { getPendingExpressCount } = useBorrowStore();
-  const pendingExpressCount = getPendingExpressCount();
+  const { expressRecords, currentHouseId } = useBorrowStore();
+  const pendingExpressCount = useMemo(() => {
+    return expressRecords.filter((r) => r.houseId === currentHouseId && r.status === 'pending').length;
+  }, [expressRecords, currentHouseId]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-50">
