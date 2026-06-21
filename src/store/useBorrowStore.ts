@@ -139,7 +139,9 @@ interface BorrowState {
 
   announcements: Announcement[];
   showAnnouncementModal: boolean;
+  announcementRoommateId: string | null;
   setShowAnnouncementModal: (show: boolean) => void;
+  setAnnouncementRoommateId: (id: string | null) => void;
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'houseId' | 'createdAt' | 'readBy'>) => void;
   deleteAnnouncement: (id: string) => void;
   markAnnouncementRead: (id: string, roommateId: string) => void;
@@ -185,6 +187,7 @@ export const useBorrowStore = create<BorrowState>()(
       selectedChoreDay: null,
       announcements: MOCK_ANNOUNCEMENTS,
       showAnnouncementModal: false,
+      announcementRoommateId: null,
       filter: 'all',
       showHistory: false,
       showRoommateModal: false,
@@ -227,6 +230,7 @@ export const useBorrowStore = create<BorrowState>()(
             currentHouseId: houseId,
             selectedRoommateId: null,
             searchQuery: '',
+            announcementRoommateId: null,
           });
         }
       },
@@ -1179,6 +1183,8 @@ export const useBorrowStore = create<BorrowState>()(
       },
 
       setShowAnnouncementModal: (show) => set({ showAnnouncementModal: show }),
+
+      setAnnouncementRoommateId: (id) => set({ announcementRoommateId: id }),
 
       addAnnouncement: (announcement) => {
         const now = new Date().toISOString();

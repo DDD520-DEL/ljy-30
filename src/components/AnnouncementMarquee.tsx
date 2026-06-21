@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
-import { Megaphone, ChevronLeft, ChevronRight, Bell, Check } from 'lucide-react';
+import { Megaphone, ChevronLeft, ChevronRight, Bell, Check, User } from 'lucide-react';
 import type { Announcement } from '@/types';
 
 interface AnnouncementMarqueeProps {
@@ -11,6 +11,8 @@ export function AnnouncementMarquee({ onOpenAnnouncementModal }: AnnouncementMar
   const {
     roommates,
     currentHouseId,
+    announcementRoommateId,
+    setAnnouncementRoommateId,
     getActiveAnnouncements,
     markAnnouncementRead,
     getUnreadAnnouncementCount,
@@ -23,8 +25,22 @@ export function AnnouncementMarquee({ onOpenAnnouncementModal }: AnnouncementMar
     [roommates, currentHouseId]
   );
 
-  const currentRoommateId = currentRoommates[0]?.id || '';
-  const unreadCount = getUnreadAnnouncementCount(currentRoommateId);
+  const resolvedRoommateId = useMemo(() => {
+    if (announcementRoommateId && currentRoommates.some((r) => r.id === announcementRoommateId)) {
+      return announcementRoommateId;
+    }
+    return currentRoommates[0]?.id || '';
+  }, [announcementRoommateId, currentRoommates]);
+
+  useEffect(() => {
+    if (!announcementRoommateId || !currentRoommates.some((r) => r.id === announcementRoommateId)) {
+      if (currentRoommates.length > 0 && announcementRoommateId !== currentRoommates[0].id) {
+        setAnnouncementRoommateId(currentRoommates[0].id);
+      }
+    }
+  }, [currentRoommates, announcementRoommateId, setAnnouncementRoommateId]);
+
+  const unreadCount = getUnreadAnnouncementCount(resolvedRoommateId);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -70,13 +86,13 @@ export function AnnouncementMarquee({ onOpenAnnouncementModal }: AnnouncementMar
 
   const handleMarkRead = (announcement: Announcement, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (currentRoommateId) {
-      markAnnouncementRead(announcement.id, currentRoommateId);
+    if (resolvedRoommateId) {
+      markAnnouncementRead(announcement.id, resolvedRoommateId);
     }
   };
 
   const isRead = (announcement: Announcement) => {
-    return currentRoommateId && announcement.readBy.includes(currentRoommateId);
+    return resolvedRoommateId && announcement.readBy.includes(resolvedRoommateId);
   };
 
   if (announcements.length === 0) return null;
@@ -130,6 +146,28 @@ export function AnnouncementMarquee({ onOpenAnnouncementModal }: AnnouncementMar
               </div>
             ) : (
               <div className="space-y-2 animate-fade-in py-1">
+                {currentRoommates.length > 1 && (
+                  <div className="flex items-center gap-1.5 px-1 pb-1.5 overflow-x-auto">
+                    <User className="w-3.5 h-3.5 shrink-0 text-white/70" />
+                    {currentRoommates.map((roommate) => (
+                      <button
+                        key={roommate.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAnnouncementRoommateId(roommate.id);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs shrink-0 transition-all ${
+                          resolvedRoommateId === roommate.id
+                            ? 'bg-white/30 text-white font-medium'
+                            : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        }`}
+                      >
+                        <span>{roommate.avatar}</span>
+                        <span>{roommate.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {announcements.map((announcement) => (
                   <div
                     key={announcement.id}
@@ -159,7 +197,7 @@ export function AnnouncementMarquee({ onOpenAnnouncementModal }: AnnouncementMar
                         {announcement.content}
                       </p>
                     </div>
-                    {!isRead(announcement) && currentRoommateId && (
+                    {!isRead(announcement) && resolvedRoommateId && (
                       <button
                         onClick={(e) => handleMarkRead(announcement, e)}
                         className="shrink-0 p-1.5 hover:bg-white/20 rounded-lg transition-colors"

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useBorrowStore } from '@/store/useBorrowStore';
 import { X, Megaphone, Trash2, Check, Plus } from 'lucide-react';
 
@@ -20,6 +20,8 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
   const {
     roommates,
     currentHouseId,
+    announcementRoommateId,
+    setAnnouncementRoommateId,
     addAnnouncement,
     deleteAnnouncement,
     getAnnouncements,
@@ -33,15 +35,29 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
     [roommates, currentHouseId]
   );
 
+  const resolvedRoommateId = useMemo(() => {
+    if (announcementRoommateId && currentRoommates.some((r) => r.id === announcementRoommateId)) {
+      return announcementRoommateId;
+    }
+    return currentRoommates[0]?.id || '';
+  }, [announcementRoommateId, currentRoommates]);
+
+  useEffect(() => {
+    if (!announcementRoommateId || !currentRoommates.some((r) => r.id === announcementRoommateId)) {
+      if (currentRoommates.length > 0 && announcementRoommateId !== currentRoommates[0].id) {
+        setAnnouncementRoommateId(currentRoommates[0].id);
+      }
+    }
+  }, [currentRoommates, announcementRoommateId, setAnnouncementRoommateId]);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [content, setContent] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState(ANNOUNCEMENT_EMOJIS[0]);
-  const [selectedRoommateId, setSelectedRoommateId] = useState(currentRoommates[0]?.id || '');
   const [expiryDays, setExpiryDays] = useState(1);
 
   const handleAddAnnouncement = () => {
-    if (!content.trim() || !selectedRoommateId) return;
-    const roommate = currentRoommates.find((r) => r.id === selectedRoommateId);
+    if (!content.trim() || !resolvedRoommateId) return;
+    const roommate = currentRoommates.find((r) => r.id === resolvedRoommateId);
     if (!roommate) return;
 
     const expiresAt = expiryDays > 0
@@ -70,8 +86,8 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
   };
 
   const handleMarkRead = (id: string) => {
-    if (selectedRoommateId) {
-      markAnnouncementRead(id, selectedRoommateId);
+    if (resolvedRoommateId) {
+      markAnnouncementRead(id, resolvedRoommateId);
     }
   };
 
@@ -96,7 +112,7 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
   };
 
   const isReadByCurrent = (readBy: string[]) => {
-    return selectedRoommateId && readBy.includes(selectedRoommateId);
+    return resolvedRoommateId && readBy.includes(resolvedRoommateId);
   };
 
   if (!isOpen) return null;
@@ -128,9 +144,9 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
               {currentRoommates.map((roommate) => (
                 <button
                   key={roommate.id}
-                  onClick={() => setSelectedRoommateId(roommate.id)}
+                  onClick={() => setAnnouncementRoommateId(roommate.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                    selectedRoommateId === roommate.id
+                    resolvedRoommateId === roommate.id
                       ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-400'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -195,7 +211,7 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
                           <span>{announcement.readBy.length} 人已读</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {!isRead && !expired && selectedRoommateId && (
+                          {!isRead && !expired && resolvedRoommateId && (
                             <button
                               onClick={() => handleMarkRead(announcement.id)}
                               className="text-xs px-2.5 py-1 bg-success-100 text-success-700 rounded-lg hover:bg-success-200 transition-colors font-medium"
@@ -251,9 +267,9 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
                 {currentRoommates.map((roommate) => (
                   <button
                     key={roommate.id}
-                    onClick={() => setSelectedRoommateId(roommate.id)}
+                    onClick={() => setAnnouncementRoommateId(roommate.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-                      selectedRoommateId === roommate.id
+                      resolvedRoommateId === roommate.id
                         ? 'bg-primary-500 text-white'
                         : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                     }`}
@@ -306,7 +322,7 @@ export function AnnouncementModal({ isOpen, onClose }: AnnouncementModalProps) {
               </button>
               <button
                 onClick={handleAddAnnouncement}
-                disabled={!content.trim() || !selectedRoommateId}
+                disabled={!content.trim() || !resolvedRoommateId}
                 className="flex-1 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 发布
